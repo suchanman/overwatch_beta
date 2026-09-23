@@ -156,7 +156,35 @@ export class ProjectileManager {
     });
   }
 
-  update(dt, bots, onHitCallback, map = null) {
+  // 5. Training Bot / Enemy Plasma Bolt (For testing shield blocking and deflect)
+  spawnEnemyBolt(origin, direction, speed = 25, damage = 25) {
+    const geo = new THREE.SphereGeometry(0.18, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(origin);
+
+    const haloGeo = new THREE.SphereGeometry(0.30, 8, 8);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0xff5577,
+      transparent: true,
+      opacity: 0.55
+    });
+    const halo = new THREE.Mesh(haloGeo, haloMat);
+    mesh.add(halo);
+
+    this.scene.add(mesh);
+    this.projectiles.push({
+      type: 'enemy_bolt',
+      mesh,
+      velocity: direction.clone().multiplyScalar(speed),
+      life: 3.5,
+      damage,
+      isReflected: false,
+      lastPos: origin.clone()
+    });
+  }
+
+  update(dt, bots, onHitCallback, map = null, playerContext = null) {
     // 0. Update Motion Streaks (Fade & Thinning)
     for (let i = this.motionStreaks.length - 1; i >= 0; i--) {
       const s = this.motionStreaks[i];
@@ -368,6 +396,96 @@ export class ProjectileManager {
           this.scene.remove(p.mesh);
           p.mesh.geometry.dispose();
           p.mesh.material.dispose();
+          this.projectiles.splice(i, 1);
+        }
+      } else if (p.type === 'enemy_bolt') {
+        p.life -= dt;
+        const prevPos = p.lastPos ? p.lastPos.clone() : p.mesh.position.clone();
+        p.mesh.position.addScaledVector(p.velocity, dt);
+        p.lastPos = p.mesh.position.clone();
+
+        let hit = false;
+
+        // Map collision
+        if (map && typeof map.checkProjectileHit === 'function') {
+          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.18);
+          if (wallHit.hit) {
+            hit = true;
+          }
+        }
+
+        if (!hit) {
+          if (!p.isReflected) {
+            // Check collision against local player
+            if (playerContext && playerContext.playerPos && playerContext.currentHero) {
+              const pPos = playerContext.playerPos;
+              const pHero = playerContext.currentHero;
+              const pCam = playerContext.camera;
+              const dist = p.mesh.position.distanceTo(pPos);
+
+              if (dist < 1.7) {
+                // 1. Check Genji Deflect
+                if (pHero.name === 'GENJI' && pHero.isDeflecting) {
+                  p.isReflected = true;
+                  if (p.mesh.children && p.mesh.children[0]) {
+                    p.mesh.children[0].material.color.setHex(0x00ff88);
+                  }
+                  p.mesh.material.color.setHex(0x10b981);
+                  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
+                  p.velocity.copy(forward).multiplyScalar(42);
+                  if (playerContext.audio) playerContext.audio.playGenjiDeflect();
+                  if (playerContext.shaker) playerContext.shaker.addTrauma(0.18);
+                  continue;
+                }
+
+                // 2. Check Reinhardt Shield
+                if (pHero.name === 'REINHARDT' && pHero.isShieldActive) {
+                  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
+                  forward.y = 0;
+                  forward.normalize();
+                  const toBolt = p.mesh.position.clone().sub(pPos).normalize();
+                  if (forward.dot(toBolt) > 0.1) {
+                    pHero.takeShieldDamage(p.damage);
+                    if (playerContext.audio) playerContext.audio.playHit(false);
+                    if (playerContext.shaker) playerContext.shaker.addTrauma(0.08);
+                    hit = true;
+                  }
+                }
+
+                if (!hit && !p.isReflected) {
+                  // Direct hit on unshielded player
+                  pHero.takeDamage(p.damage);
+                  if (playerContext.audio) playerContext.audio.playDamage();
+                  if (playerContext.shaker) playerContext.shaker.addTrauma(0.2);
+                  if (playerContext.ui) playerContext.ui.triggerDamageFlash();
+                  hit = true;
+                }
+              }
+            }
+          } else {
+            // Deflected bolt: travels forward and damages training bots or enemies
+            for (const bot of bots) {
+              if (bot.isDead) continue;
+              const botPos = bot.group.position;
+              const dist = p.mesh.position.distanceTo(botPos.clone().add(new THREE.Vector3(0, 1.2, 0)));
+              if (dist < 1.4) {
+                const finalBlow = bot.takeDamage(50, false, p.velocity.clone().normalize());
+                if (typeof onHitCallback === 'function') {
+                  onHitCallback(bot, 50, false, finalBlow);
+                }
+                hit = true;
+                break;
+              }
+            }
+          }
+        }
+
+        if (hit || p.life <= 0) {
+          this.scene.remove(p.mesh);
+          p.mesh.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
           this.projectiles.splice(i, 1);
         }
       }

@@ -33,6 +33,7 @@ export class TrainingBot {
     this.patrolAngle = Math.random() * Math.PI * 2;
     this.patrolRadius = 3.5;
     this.moveSpeed = 1.6;
+    this.shootCooldown = 2.5 + Math.random() * 2.0;
 
     // Build 3D Mesh
     this.group = new THREE.Group();
@@ -248,7 +249,7 @@ export class TrainingBot {
     this.updateHealthBarTexture();
   }
 
-  update(dt, playerPos) {
+  update(dt, playerPos, projectileManager = null) {
     if (this.isDead) {
       // Debris Physics during death
       this.parts.forEach((p) => {
@@ -299,10 +300,24 @@ export class TrainingBot {
     // Hover floating bobbing
     this.group.position.y = 0.15 + Math.sin(Date.now() * 0.003 + this.id) * 0.1;
 
-    // Rotate to face player
+    // Rotate to face player & periodic plasma bolt shooting
     if (playerPos) {
       const angle = Math.atan2(playerPos.x - this.group.position.x, playerPos.z - this.group.position.z);
       this.group.rotation.y = angle;
+
+      if (projectileManager) {
+        this.shootCooldown -= dt;
+        if (this.shootCooldown <= 0) {
+          const dist = this.group.position.distanceTo(playerPos);
+          if (dist > 3.5 && dist < 32.0) {
+            const origin = this.group.position.clone().add(new THREE.Vector3(0, 1.35, 0));
+            const target = playerPos.clone().add(new THREE.Vector3(0, 0.9, 0));
+            const dir = target.sub(origin).normalize();
+            projectileManager.spawnEnemyBolt(origin, dir, 25, 25);
+          }
+          this.shootCooldown = 3.2 + Math.random() * 2.5;
+        }
+      }
     }
   }
 }

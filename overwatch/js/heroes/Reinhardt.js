@@ -31,10 +31,14 @@ export class Reinhardt extends HeroBase {
     this.swingDirection = 1;    // 1: Right-to-Left, -1: Left-to-Right
     this.idleTime = 0;
 
-    // Barrier Shield (Right Click)
-    this.maxShieldHp = 2000;
-    this.shieldHp = 2000;
+    // Barrier Shield (Right Click) - 500 HP as requested
+    this.maxShieldHp = 500;
+    this.shieldHp = 500;
     this.isShieldActive = false;
+    this.shieldRegenDelay = 2.0;
+    this.shieldRegenTimer = 0;
+    this.shieldRegenRate = 75; // 75 HP/sec regeneration
+    this.activeFissures = [];
 
     // Charge (Shift)
     this.ability1Cooldown = 8.0;
@@ -206,13 +210,13 @@ export class Reinhardt extends HeroBase {
 
     // 7. Holographic Energy Barrier (Right Click Shield)
     const shieldGeo = new THREE.PlaneGeometry(4.2, 2.6);
-    const shieldMat = new THREE.MeshBasicMaterial({
+    this.shieldMat = new THREE.MeshBasicMaterial({
       color: 0x00c3ff,
       transparent: true,
       opacity: 0.42,
       side: THREE.DoubleSide
     });
-    this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+    this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
     this.shieldMesh.position.set(0, 0, -1.1);
     this.shieldMesh.visible = false;
     this.weaponGroup.add(this.shieldMesh);
@@ -280,10 +284,35 @@ export class Reinhardt extends HeroBase {
 
   setShieldActive(active, audio) {
     if (this.isCharging) return;
+    if (active && this.shieldHp <= 0) return; // Cannot raise shattered shield
+
     this.isShieldActive = active;
-    this.shieldMesh.visible = active;
-    this.hammerGroup.visible = !active;
+    if (this.shieldMesh) this.shieldMesh.visible = active;
+    if (this.hammerGroup) this.hammerGroup.visible = !active;
     if (this.cleaveArc) this.cleaveArc.visible = false;
+  }
+
+  takeShieldDamage(dmg) {
+    if (!this.isShieldActive || this.shieldHp <= 0) return 0;
+    const absorbed = Math.min(this.shieldHp, dmg);
+    this.shieldHp = Math.max(0, this.shieldHp - dmg);
+    this.shieldRegenTimer = this.shieldRegenDelay;
+
+    // Flash shield mesh white briefly on hit
+    if (this.shieldMat) {
+      this.shieldMat.color.setHex(0xffffff);
+      setTimeout(() => {
+        if (this.shieldMat) this.shieldMat.color.setHex(0x00c3ff);
+      }, 75);
+    }
+
+    if (this.shieldHp <= 0) {
+      // Shield shattered
+      this.isShieldActive = false;
+      if (this.shieldMesh) this.shieldMesh.visible = false;
+      if (this.hammerGroup) this.hammerGroup.visible = true;
+    }
+    return absorbed;
   }
 
   useAbility1(playerPos, moveDir, camera, audio, shaker, bots, onHitCallback, projectiles) {
@@ -346,6 +375,12 @@ export class Reinhardt extends HeroBase {
     forward.y = 0;
     forward.normalize();
 
+    // Trigger 3D Earthshatter Ground Fissure Effect
+    const origin = camera.position.clone();
+    if (projectileManager && projectileManager.scene) {
+      this.createEarthshatterFissure(origin, forward, projectileManager.scene);
+    }
+
     // Knock down and damage all bots in 14m cone
     if (Array.isArray(bots)) {
       bots.forEach((bot) => {
@@ -368,12 +403,173 @@ export class Reinhardt extends HeroBase {
     return true;
   }
 
+  createEarthshatterFissure(origin, forward, scene) {
+    if (!scene) return;
+
+    const fissureGroup = new THREE.Group();
+    const startPos = origin.clone();
+    startPos.y = 0.05;
+
+    const branches = [-0.42, -0.20, 0, 0.20, 0.42]; // 5 spreading crack paths
+    const crackPlanes = [];
+    const rockChunks = [];
+
+    // Glowing crack materials (Emissive lava)
+    const crackMat = new THREE.MeshBasicMaterial({
+      color: 0xff3700,
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide
+    });
+
+    const innerCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xffe600,
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide
+    });
+
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: 0x2b1c14,
+      roughness: 0.95,
+      metalness: 0.15
+    });
+
+    branches.forEach((angle) => {
+      const branchDir = forward.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angle).normalize();
+      const numSegments = 5;
+
+      let prevPoint = startPos.clone();
+      for (let s = 1; s <= numSegments; s++) {
+        const segDist = 2.4 + s * 0.35;
+        const curPoint = prevPoint.clone().addScaledVector(branchDir, segDist);
+        curPoint.x += (Math.random() - 0.5) * 0.5;
+        curPoint.z += (Math.random() - 0.5) * 0.5;
+        curPoint.y = 0.05;
+
+        // Fissure ground plane line
+        const midPoint = prevPoint.clone().add(curPoint).multiplyScalar(0.5);
+        const dist = prevPoint.distanceTo(curPoint);
+        const crackGeo = new THREE.PlaneGeometry(0.35 + (s * 0.06), dist);
+        crackGeo.rotateX(-Math.PI / 2);
+
+        const crackMesh = new THREE.Mesh(crackGeo, crackMat);
+        crackMesh.position.copy(midPoint);
+        crackMesh.lookAt(curPoint.x, midPoint.y, curPoint.z);
+        fissureGroup.add(crackMesh);
+        crackPlanes.push(crackMesh);
+
+        // Bright yellow inner molten core
+        const coreGeo = new THREE.PlaneGeometry(0.12 + (s * 0.025), dist * 0.95);
+        coreGeo.rotateX(-Math.PI / 2);
+        const coreMesh = new THREE.Mesh(coreGeo, innerCoreMat);
+        coreMesh.position.copy(midPoint);
+        coreMesh.position.y += 0.01;
+        coreMesh.lookAt(curPoint.x, midPoint.y + 0.01, curPoint.z);
+        fissureGroup.add(coreMesh);
+        crackPlanes.push(coreMesh);
+
+        // Jagged protruding rock chunk
+        const rockSizeX = 0.32 + Math.random() * 0.40;
+        const rockSizeY = 0.35 + Math.random() * 0.55;
+        const rockSizeZ = 0.32 + Math.random() * 0.40;
+        const rockGeo = new THREE.BoxGeometry(rockSizeX, rockSizeY, rockSizeZ);
+
+        const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+        rockMesh.position.copy(curPoint);
+        rockMesh.position.y = -0.4;
+        rockMesh.rotation.set(
+          (Math.random() - 0.5) * 0.6,
+          Math.random() * Math.PI,
+          (Math.random() - 0.5) * 0.6
+        );
+        fissureGroup.add(rockMesh);
+
+        const targetY = (rockSizeY * 0.5) * (0.6 + Math.random() * 0.6);
+        rockChunks.push({
+          mesh: rockMesh,
+          targetY,
+          curY: -0.4,
+          delay: (s - 1) * 0.035, // Staggered rising outward!
+          riseSpeed: 8.5,
+          decay: false
+        });
+
+        prevPoint = curPoint;
+      }
+    });
+
+    scene.add(fissureGroup);
+
+    this.activeFissures.push({
+      group: fissureGroup,
+      crackPlanes,
+      rockChunks,
+      crackMat,
+      innerCoreMat,
+      rockMat,
+      elapsed: 0,
+      duration: 3.0,
+      scene
+    });
+  }
+
   update(dt, playerPos, camera, projectiles, audio, bots, onHitCallback, shaker, map) {
     this.updateBase(dt);
     this.idleTime += dt;
 
     if (this.swingCooldownTimer > 0) {
       this.swingCooldownTimer -= dt;
+    }
+
+    // Shield regeneration when lowered
+    if (!this.isShieldActive) {
+      if (this.shieldRegenTimer > 0) {
+        this.shieldRegenTimer -= dt;
+      } else if (this.shieldHp < this.maxShieldHp) {
+        this.shieldHp = Math.min(this.maxShieldHp, this.shieldHp + this.shieldRegenRate * dt);
+      }
+    }
+
+    // Update active Earthshatter fissures
+    for (let f = this.activeFissures.length - 1; f >= 0; f--) {
+      const fis = this.activeFissures[f];
+      fis.elapsed += dt;
+
+      // Animate rock chunks rising with staggering shockwave
+      fis.rockChunks.forEach((rc) => {
+        if (fis.elapsed >= rc.delay) {
+          if (!rc.decay) {
+            rc.curY += rc.riseSpeed * dt;
+            if (rc.curY >= rc.targetY) {
+              rc.curY = rc.targetY;
+            }
+          } else {
+            rc.curY -= 1.8 * dt;
+          }
+          rc.mesh.position.y = rc.curY;
+        }
+      });
+
+      // After 2.0s, start decay and fading
+      if (fis.elapsed >= 2.0) {
+        fis.rockChunks.forEach((rc) => { rc.decay = true; });
+        const fadeP = 1.0 - (fis.elapsed - 2.0) / (fis.duration - 2.0);
+        const opacity = Math.max(0, fadeP);
+        fis.crackMat.opacity = opacity * 0.95;
+        fis.innerCoreMat.opacity = opacity * 0.95;
+      }
+
+      if (fis.elapsed >= fis.duration) {
+        fis.scene.remove(fis.group);
+        fis.group.traverse((obj) => {
+          if (obj.geometry) obj.geometry.dispose();
+        });
+        fis.crackMat.dispose();
+        fis.innerCoreMat.dispose();
+        fis.rockMat.dispose();
+        this.activeFissures.splice(f, 1);
+      }
     }
 
     // 1. 6-STAGE ROCKET HAMMER ATTACK MOTION (SWEPT & RECOVERS TO RIGHT)

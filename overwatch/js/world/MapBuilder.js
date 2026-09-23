@@ -1,400 +1,433 @@
 /**
  * ============================================================================
- * OVERWATCH 2 : TRAINING ARENA MAP BUILDER
- * - Bright Daylight Theme (Overwatch Training Range & Ilios aesthetic)
- * - Crisp character silhouette visibility & high contrast
- * - Solid 3D Obstacle Collision System (Pillars, Balcony, Ramp, Barricades)
+ * OVERWATCH 2 : ROUTE 66 (DEADLOCK GORGE) MAP BUILDER
+ * - Authentic Route 66 Desert Aesthetics (Big Earl's Diner, Gas Station, Payload)
+ * - Canyon Rock Walls, Derailment Train Cars, Railroad Tracks & Cactus
+ * - Full 3D Multi-Level Collision System (Roofs, Platforms, Stepping Crates)
+ * - Distributed Health Packs (Mega 250 HP & Mini 75 HP) with Respawns
  * ============================================================================
  */
+
+import * as THREE from 'three';
 
 export class MapBuilder {
   constructor(scene) {
     this.scene = scene;
     this.healthPacks = [];
-    this.colliders = []; // Solid collision registry
+    this.colliders = []; // Solid 3D collision registry
+
+    this.colors = {
+      sky: 0x8cbbe2,
+      ground: 0xc49a71, // Rich desert sand
+      road: 0x4f4f4f,
+      rock: 0xc86a41,
+      rockDark: 0x9b4226,
+      dinerWall: 0xe0d6b8,
+      dinerRoof: 0x826d56,
+      garageBlue: 0x48647a,
+      trainRed: 0xb53535,
+      trainSilver: 0xb0b0b0,
+      dinerAwning: 0x3d858f,
+      signYellow: 0xf5c851,
+      signRed: 0xc84b31,
+      billboard: 0x5a9a8f,
+      wood: 0x6e5237
+    };
 
     this.buildLighting();
-    this.buildArenaGeometry();
-    this.buildTacticalProps();
+    this.buildRoute66Environment();
     this.spawnHealthPacks();
   }
 
   buildLighting() {
-    // 1. Bright Omni-directional Sky/Ground Daylight (Hemisphere Light)
-    // Ensures characters, weapons, and enemies are NEVER lost in dark shadows!
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcfd8dc, 0.95);
-    hemiLight.position.set(0, 50, 0);
+    // 1. Scene sky & warm desert atmospheric fog
+    this.scene.background = new THREE.Color(this.colors.sky);
+    this.scene.fog = new THREE.FogExp2(this.colors.sky, 0.005);
+
+    // 2. Warm Desert Hemisphere Light
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xaa7744, 0.85);
+    hemiLight.position.set(0, 60, 0);
     this.scene.add(hemiLight);
 
-    // 2. Main Sun (Directional Light - Warm Golden Daylight)
-    const sun = new THREE.DirectionalLight(0xfff8ea, 1.35);
-    sun.position.set(28, 45, 22);
-    sun.castShadow = true;
-    sun.shadow.mapSize.width = 2048;
-    sun.shadow.mapSize.height = 2048;
-    sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 120;
-    sun.shadow.camera.left = -42;
-    sun.shadow.camera.right = 42;
-    sun.shadow.camera.top = 42;
-    sun.shadow.camera.bottom = -42;
-    sun.shadow.bias = -0.0005;
-    this.scene.add(sun);
+    // 3. Bright Sun (Directional Light with sharp shadows)
+    const dirLight = new THREE.DirectionalLight(0xfffae6, 1.25);
+    dirLight.position.set(-50, 100, 50);
+    dirLight.castShadow = true;
+    dirLight.shadow.camera.top = 100;
+    dirLight.shadow.camera.bottom = -100;
+    dirLight.shadow.camera.left = -100;
+    dirLight.shadow.camera.right = 100;
+    dirLight.shadow.camera.near = 0.1;
+    dirLight.shadow.camera.far = 300;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.bias = -0.0005;
+    this.scene.add(dirLight);
 
-    // 3. Cool Skylight Fill Light (eliminates pitch-black back-facing surfaces)
-    const fillLight = new THREE.DirectionalLight(0xbde0fe, 0.50);
-    fillLight.position.set(-25, 30, -20);
-    this.scene.add(fillLight);
-
-    // 4. Subtle Ambient Light for clean contrast
+    // 4. Subtle ambient fill
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
     this.scene.add(ambientLight);
-
-    // 5. Sci-fi Neon Point Accent Lights
-    const bluePoint = new THREE.PointLight(0x00c3ff, 1.5, 25);
-    bluePoint.position.set(-14, 3.5, -12);
-    this.scene.add(bluePoint);
-
-    const orangePoint = new THREE.PointLight(0xf97316, 1.6, 25);
-    orangePoint.position.set(14, 3.5, 12);
-    this.scene.add(orangePoint);
   }
 
-  buildArenaGeometry() {
-    // 1. Main Floor: Bright Clean Architectural Paving (Overwatch White & Pale Slate)
-    const floorGeo = new THREE.PlaneGeometry(80, 80);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xeef2f7, // Bright clean white/silver composite
-      roughness: 0.45,
-      metalness: 0.15
+  // Helper for generating canvas sign texture
+  createSignTexture(text, bgColor, textColor, width, height, fontSize, fontStyle = "bold") {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+
+    const lines = text.split('\n');
+    ctx.fillStyle = textColor;
+    ctx.font = `${fontStyle} ${fontSize}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const lineHeight = fontSize * 1.2;
+    const totalHeight = lines.length * lineHeight;
+    let startY = (height - totalHeight) / 2 + (lineHeight / 2);
+
+    lines.forEach(line => {
+      ctx.fillText(line, width / 2, startY);
+      startY += lineHeight;
     });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });
+  }
+
+  // Asphalt road texture with tire tracks and Route 66 shield marking
+  createRoadTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#4f4f4f';
+    ctx.fillRect(0, 0, 512, 1024);
+
+    // Tire marks
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.fillRect(145, 0, 42, 1024);
+    ctx.fillRect(325, 0, 42, 1024);
+
+    // Center yellow dashes
+    ctx.fillStyle = '#e8c92a';
+    for (let i = 0; i < 1024; i += 100) {
+      ctx.fillRect(246, i, 20, 60);
+    }
+
+    // Route 66 Shield Emblem
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(256, 800, 62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 72px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("66", 256, 800);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 4);
+    return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.85 });
+  }
+
+  addCollider(mesh, name = 'obstacle', canStandOn = true) {
+    mesh.geometry.computeBoundingBox();
+    const box3 = new THREE.Box3();
+    box3.setFromObject(mesh);
+    this.colliders.push({
+      name,
+      minX: box3.min.x,
+      maxX: box3.max.x,
+      minY: box3.min.y,
+      maxY: box3.max.y,
+      minZ: box3.min.z,
+      maxZ: box3.max.z,
+      canStandOn
+    });
+  }
+
+  createBox(x, y, z, w, h, d, colorHex, rotX = 0, rotY = 0, rotZ = 0, name = 'box', collide = true) {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.95, flatShading: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y + (h / 2), z);
+    mesh.rotation.set(rotX, rotY, rotZ);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    if (collide) this.addCollider(mesh, name, true);
+    return mesh;
+  }
+
+  createCylinder(x, y, z, radius, height, colorHex, rotX = 0, rotY = 0, rotZ = 0, name = 'cyl', collide = true) {
+    const geo = new THREE.CylinderGeometry(radius, radius, height, 16);
+    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.85, flatShading: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y + (height / 2), z);
+    mesh.rotation.set(rotX, rotY, rotZ);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    if (collide) this.addCollider(mesh, name, true);
+    return mesh;
+  }
+
+  createSignBoard(x, y, z, w, h, d, text, bgColor, textColor, rotY = 0, name = 'sign') {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = this.createSignTexture(text, bgColor, textColor, 512, 256, 45);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y + (h / 2), z);
+    mesh.rotation.y = rotY;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    this.addCollider(mesh, name, true);
+    return mesh;
+  }
+
+  buildRockWall(x, y, z, w, h, d, rotY, colorHex, name = 'rock_wall') {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const positions = geo.attributes.position;
+    if (positions) {
+      for (let i = 0; i < positions.count; i++) {
+        positions.setX(i, positions.getX(i) + (Math.random() - 0.5) * 4);
+        positions.setY(i, positions.getY(i) + (Math.random() - 0.5) * 4);
+        positions.setZ(i, positions.getZ(i) + (Math.random() - 0.5) * 4);
+      }
+      geo.computeVertexNormals();
+    }
+    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 1.0, flatShading: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y + (h / 2), z);
+    mesh.rotation.y = rotY;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    this.addCollider(mesh, name, false);
+  }
+
+  createPayload(x, y, z) {
+    this.createBox(x, y + 1.5, z, 7, 1.5, 12, 0x555555, 0, Math.PI / 12, 0, 'payload_base');
+    this.createBox(x, y + 3, z, 5, 2.5, 9, 0x3a6a8c, 0, Math.PI / 12, 0, 'payload_body');
+    this.createBox(x, y + 5.5, z, 3, 2, 7, 0xeeeeee, 0, Math.PI / 12, 0, 'payload_top');
+
+    // Glowing Hover Thruster Pads
+    const padMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const padGeo = new THREE.BoxGeometry(1.5, 0.4, 2);
+    const offsets = [[-3, -4], [3, -4], [-3, 4], [3, 4]];
+    offsets.forEach(off => {
+      const pad = new THREE.Mesh(padGeo, padMat);
+      pad.position.set(x + off[0], y + 1.0, z + off[1]);
+      pad.rotation.y = Math.PI / 12;
+      this.scene.add(pad);
+    });
+  }
+
+  createCactus(x, y, z) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x4a6a38, roughness: 0.8 });
+    const trunkGeo = new THREE.CylinderGeometry(0.4, 0.5, 3.2, 8);
+    const trunk = new THREE.Mesh(trunkGeo, mat);
+    trunk.position.set(x, y + 1.6, z);
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    this.scene.add(trunk);
+    this.addCollider(trunk, 'cactus', true);
+
+    const arm1Geo = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 8);
+    const arm1 = new THREE.Mesh(arm1Geo, mat);
+    arm1.position.set(x + 0.6, y + 1.8, z);
+    arm1.rotation.z = Math.PI / 4;
+    arm1.castShadow = true;
+    this.scene.add(arm1);
+
+    const arm2Geo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 8);
+    const arm2 = new THREE.Mesh(arm2Geo, mat);
+    arm2.position.set(x - 0.5, y + 1.2, z);
+    arm2.rotation.z = -Math.PI / 3;
+    arm2.castShadow = true;
+    this.scene.add(arm2);
+  }
+
+  buildRoute66Environment() {
+    // 1. Desert Floor
+    const floorGeo = new THREE.PlaneGeometry(600, 600);
+    floorGeo.rotateX(-Math.PI / 2);
+    const floorMat = new THREE.MeshStandardMaterial({ color: this.colors.ground, roughness: 1.0 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     this.scene.add(floor);
 
-    // Clean Tech Grid Floor Decal (High visibility)
-    const gridHelper = new THREE.GridHelper(80, 40, 0xf97316, 0xcbd5e1);
-    gridHelper.position.y = 0.01;
-    this.scene.add(gridHelper);
+    // Railroad tracks & wooden ties
+    for (let i = 0; i < 5; i++) {
+      this.createBox(-10 + (i * 6), 0, -35, 1, 0.2, 20, 0x333333, 0, 0, 0, 'rail_track', false);
+      this.createBox(-10 + (i * 6), 0, -25, 1, 0.2, 20, 0x333333, 0, 0, 0, 'rail_track', false);
+    }
+    for (let i = 0; i < 15; i++) {
+      this.createBox(-15 + (i * 2), 0, -30, 4, 0.1, 1, this.colors.wood, 0, 0, 0, 'rail_tie', false);
+    }
 
-    // 2. Central Overwatch Circle Emblem (Glowing Vibrant Orange & Cyan)
-    const ringGeo = new THREE.RingGeometry(3.5, 3.9, 48);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xf97316, side: THREE.DoubleSide });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.02;
-    this.scene.add(ring);
+    // 2. S-Curved Route 66 Highway
+    const roadMat = this.createRoadTexture();
 
-    const innerRingGeo = new THREE.RingGeometry(1.6, 1.8, 32);
-    const innerRingMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide });
-    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
-    innerRing.rotation.x = -Math.PI / 2;
-    innerRing.position.y = 0.02;
-    this.scene.add(innerRing);
+    const road1 = new THREE.Mesh(new THREE.PlaneGeometry(24, 80), roadMat);
+    road1.rotation.x = -Math.PI / 2;
+    road1.rotation.z = Math.PI / 5;
+    road1.position.set(45, 0.05, -30);
+    road1.receiveShadow = true;
+    this.scene.add(road1);
 
-    const centerDot = new THREE.Mesh(
-      new THREE.CircleGeometry(0.85, 24),
-      new THREE.MeshBasicMaterial({ color: 0x0284c7, side: THREE.DoubleSide })
-    );
-    centerDot.rotation.x = -Math.PI / 2;
-    centerDot.position.y = 0.02;
-    this.scene.add(centerDot);
+    const road2 = new THREE.Mesh(new THREE.PlaneGeometry(24, 80), roadMat);
+    road2.rotation.x = -Math.PI / 2;
+    road2.rotation.z = -Math.PI / 10;
+    road2.position.set(15, 0.06, 25);
+    road2.receiveShadow = true;
+    this.scene.add(road2);
 
-    // 3. Perimeter Arena Walls (Bright White Architectural Panels with Navy Skirting)
-    const wallWhiteMat = new THREE.MeshStandardMaterial({
-      color: 0xf8fafc,
-      roughness: 0.4,
-      metalness: 0.1
-    });
-    const wallBaseMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      roughness: 0.5,
-      metalness: 0.3
-    });
-    const orangeTrimMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+    const road3 = new THREE.Mesh(new THREE.PlaneGeometry(24, 90), roadMat);
+    road3.rotation.x = -Math.PI / 2;
+    road3.rotation.z = Math.PI / 3;
+    road3.position.set(-35, 0.07, 50);
+    road3.receiveShadow = true;
+    this.scene.add(road3);
 
-    const createWall = (width, depth, posX, posZ) => {
-      const group = new THREE.Group();
-      group.position.set(posX, 0, posZ);
+    // 3. Big Earl's Diner Building
+    this.createBox(30, 0, 15, 25, 7, 25, this.colors.dinerWall, 0, 0, 0, 'diner_1f');
+    this.createBox(30, 7, 15, 27, 1, 27, this.colors.dinerRoof, 0, 0, 0, 'diner_roof1');
+    this.createBox(32, 8, 12, 12, 5, 15, this.colors.dinerWall, 0, 0, 0, 'diner_2f');
+    this.createBox(32, 13, 12, 14, 1, 17, this.colors.dinerRoof, 0, 0, 0, 'diner_roof2');
+    this.createSignBoard(32, 14, 12, 14, 4, 0.5, "Big Earl's\n24 Hour", "#ffffff", "#c84b31", -Math.PI / 6, 'diner_sign');
 
-      // Main upper wall (height 7m, from y=1 to 8)
-      const upperGeo = new THREE.BoxGeometry(width, 7, depth);
-      const upper = new THREE.Mesh(upperGeo, wallWhiteMat);
-      upper.position.y = 4.5;
-      upper.receiveShadow = true;
-      group.add(upper);
+    // Diner Gas Awning & Pumps
+    this.createBox(12, 6, 15, 20, 1, 10, this.colors.dinerAwning, 0, 0, Math.PI / 32, 'gas_awning');
+    this.createCylinder(6, 0, 12, 0.5, 6, 0x666666, 0, 0, 0, 'awning_pole1');
+    this.createCylinder(6, 0, 18, 0.5, 6, 0x666666, 0, 0, 0, 'awning_pole2');
+    this.createBox(6, 0, 15, 2, 3, 2, this.colors.signRed, 0, 0, 0, 'gas_pump1');
+    this.createBox(6, 3, 15, 1.5, 1.5, 1.5, 0xffffff, 0, 0, 0, 'gas_pump1_top');
+    this.createBox(6, 0, 12, 2, 3, 2, this.colors.signRed, 0, 0, 0, 'gas_pump2');
+    this.createBox(6, 3, 12, 1.5, 1.5, 1.5, 0xffffff, 0, 0, 0, 'gas_pump2_top');
 
-      // Foundation base skirting (height 1m, y=0 to 1)
-      const baseGeo = new THREE.BoxGeometry(width * 1.01, 1.0, depth * 1.01);
-      const base = new THREE.Mesh(baseGeo, wallBaseMat);
-      base.position.y = 0.5;
-      group.add(base);
+    // Huge GAS Station Sign Tower
+    this.createCylinder(45, 0, 35, 0.8, 16, this.colors.signRed, 0, 0, 0, 'gas_tower_pole');
+    this.createSignBoard(45, 10, 35, 1, 5, 4, "G\nA\nS", "#ffffff", "#4a949e", -Math.PI / 4, 'gas_tower_sign');
+    this.createBox(45, 15, 35, 4, 3, 4, this.colors.signYellow, 0, 0, 0, 'gas_tower_top');
 
-      // Orange Hazard / Overwatch Trim Strip (y=4.5)
-      const trimGeo = new THREE.BoxGeometry(width * 1.02, 0.25, depth * 1.02);
-      const trim = new THREE.Mesh(trimGeo, orangeTrimMat);
-      trim.position.y = 4.5;
-      group.add(trim);
+    // Parkour Crates for Diner Roof Access
+    this.createBox(18, 0, 24, 6, 2.5, 4, this.colors.wood, 0, 0, 0, 'diner_parkour1');
+    this.createBox(18, 2.5, 24, 4, 2.5, 4, this.colors.wood, 0, 0, 0, 'diner_parkour2');
+    this.createBox(22, 0, 28, 4, 2, 4, 0x555555, 0, 0, 0, 'diner_parkour3');
 
-      this.scene.add(group);
-    };
+    // 4. Blue Garage Building
+    this.createBox(-20, 0, 50, 30, 8, 25, 0x88949c, 0, 0, 0, 'garage_main');
+    this.createBox(-20, 8, 50, 32, 1, 27, this.colors.garageBlue, 0, 0, 0, 'garage_roof');
+    this.createBox(-45, 0, 45, 20, 6, 15, 0x88949c, 0, 0, 0, 'garage_wing');
+    this.createBox(-45, 6, 45, 22, 1, 17, this.colors.garageBlue, 0, 0, 0, 'garage_wing_roof');
 
-    // North & South
-    createWall(80, 2, 0, -40);
-    createWall(80, 2, 0, 40);
-    // West & East
-    createWall(2, 80, -40, 0);
-    createWall(2, 80, 40, 0);
+    // Garage Parkour Crates
+    this.createBox(-10, 0, 35, 4, 3, 4, this.colors.wood, 0, 0, 0, 'garage_box1');
+    this.createBox(-10, 3, 35, 3, 3, 3, this.colors.wood, 0, 0, 0, 'garage_box2');
+    this.createBox(-30, 0, 38, 5, 4, 5, 0x555555, 0, 0, 0, 'garage_crate');
 
-    // Register outer boundary colliders
-    this.colliders.push(
-      { name: 'wall_north', minX: -40, maxX: 40, minZ: -41, maxZ: -39, minY: 0, maxY: 8, canStandOn: false },
-      { name: 'wall_south', minX: -40, maxX: 40, minZ: 39, maxZ: 41, minY: 0, maxY: 8, canStandOn: false },
-      { name: 'wall_west', minX: -41, maxX: -39, minZ: -40, maxZ: 40, minY: 0, maxY: 8, canStandOn: false },
-      { name: 'wall_east', minX: 39, maxX: 41, minZ: -40, maxZ: 40, minY: 0, maxY: 8, canStandOn: false }
-    );
+    // 5. Deadlock Gang Base (Attack Spawn Outpost)
+    this.createBox(-45, 0, -5, 20, 5, 25, this.colors.dinerWall, 0, 0, 0, 'deadlock_base');
+    this.createBox(-50, 5, -10, 15, 5, 15, 0x9a968a, 0, 0, 0, 'deadlock_tower');
+    this.createBox(-32, 0, 5, 4, 2, 4, this.colors.wood, 0, 0, 0, 'deadlock_crate1');
+    this.createBox(-38, 0, 0, 4, 4, 4, 0x555555, 0, 0, 0, 'deadlock_crate2');
 
-    // 4. Elevated Sniper Balcony (High-tech Platform at y=3.0)
-    const platGeo = new THREE.BoxGeometry(20, 2, 8);
-    const platMat = new THREE.MeshStandardMaterial({
-      color: 0xf1f5f9,
-      roughness: 0.35,
-      metalness: 0.25
-    });
-    const plat = new THREE.Mesh(platGeo, platMat);
-    plat.position.set(0, 3, -25);
-    plat.castShadow = true;
-    plat.receiveShadow = true;
-    this.scene.add(plat);
+    // 6. Deadlock Gorge Billboard
+    this.createSignBoard(35, 5, -15, 1, 8, 16, "Welcome to\nDeadlock Gorge!", this.colors.billboard, "#ffffff", -Math.PI / 5, 'welcome_billboard');
+    this.createCylinder(35, 0, -11, 0.4, 5, 0x333333, 0, 0, 0, 'billboard_pole1');
+    this.createCylinder(35, 0, -19, 0.4, 5, 0x333333, 0, 0, 0, 'billboard_pole2');
 
-    // Balcony Accent Edge
-    const platEdgeGeo = new THREE.BoxGeometry(20.2, 0.25, 0.3);
-    const platEdge = new THREE.Mesh(platEdgeGeo, orangeTrimMat);
-    platEdge.position.set(0, 4.05, -21.0);
-    this.scene.add(platEdge);
+    // 7. Hovering Payload Vehicle
+    this.createPayload(25, 0, 5);
 
-    // Balcony Support Columns
-    const colMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6 });
-    [-8, 8].forEach((cx) => {
-      const col = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3, 1.2), colMat);
-      col.position.set(cx, 1.5, -25);
-      col.castShadow = true;
-      this.scene.add(col);
-    });
+    // 8. Central Cliff & Crashed Train Wreck
+    this.createBox(0, 0, -15, 25, 6, 25, this.colors.rockDark, 0, 0, 0, 'cliff_base');
+    this.createBox(5, 6, -20, 15, 4, 15, this.colors.rock, 0, 0, 0, 'cliff_top');
 
-    // Balcony Collider (x: -10 to 10, y: 0 to 4.0, z: -29 to -21)
-    this.colliders.push({
-      name: 'balcony',
-      minX: -10,
-      maxX: 10,
-      minZ: -29,
-      maxZ: -21,
-      minY: 0,
-      maxY: 4.0, // Standing surface at y = 4.0
-      canStandOn: true
-    });
+    // Red & Silver Train Cars
+    this.createBox(12, 4, -10, 8, 5, 15, this.colors.trainRed, 0, Math.PI / 16, 0, 'train_car_red');
+    this.createBox(12, 0, -2, 5, 2, 5, this.colors.trainSilver, 0, 0, 0, 'train_step1');
+    this.createBox(12, 2, -4, 5, 2, 5, this.colors.trainSilver, 0, 0, 0, 'train_step2');
 
-    // 5. Ramp to Balcony (Walkable from ground y=0 to balcony y=4.0)
-    // Center at (13, 2.0, -18.5), length 13.5m along Z, width 5.2m
-    const rampGroup = new THREE.Group();
-    const rampGeo = new THREE.BoxGeometry(5.2, 0.6, 13.5);
-    const ramp = new THREE.Mesh(rampGeo, platMat);
-    ramp.castShadow = true;
-    ramp.receiveShadow = true;
-    rampGroup.position.set(13, 2.0, -18.5);
-    rampGroup.rotation.x = Math.atan2(4.0, 13.0); // Smooth slope from z = -11.8 to z = -25.2
-    rampGroup.add(ramp);
-    this.scene.add(rampGroup);
+    // Upper Train Debris
+    this.createBox(-8, 7, -18, 10, 5, 15, this.colors.trainSilver, 0, -Math.PI / 16, 0, 'train_car_silver');
+    this.createBox(-2, 6, -12, 4, 2, 4, this.colors.wood, 0, 0, 0, 'train_wood');
 
-    // Register Ramp Collider
-    this.colliders.push({
-      name: 'ramp',
-      minX: 10.4,
-      maxX: 15.6,
-      minZ: -25.2,
-      maxZ: -11.8,
-      minY: 0,
-      maxY: 4.0,
-      isRamp: true,
-      zStart: -11.8, // Ground level (y=0)
-      zEnd: -25.2,   // Balcony level (y=4.0)
-      yStart: 0.0,
-      yEnd: 4.0,
-      canStandOn: true
-    });
+    // 9. Canyon Boundaries (Four Massive 80m High Rock Canyon Walls)
+    this.buildRockWall(0, 0, -100, 300, 80, 40, 0, this.colors.rock, 'canyon_wall_north');
+    this.buildRockWall(0, 0, 100, 300, 80, 40, 0, this.colors.rock, 'canyon_wall_south');
+    this.buildRockWall(-100, 0, 0, 40, 80, 300, 0, this.colors.rockDark, 'canyon_wall_west');
+    this.buildRockWall(100, 0, 0, 40, 80, 300, 0, this.colors.rockDark, 'canyon_wall_east');
 
-    // 6. Solid High-Tech Training Pillars & Cover Blocks
-    const pillarBodyMat = new THREE.MeshStandardMaterial({
-      color: 0xf8fafc,
-      roughness: 0.35,
-      metalness: 0.2
-    });
-    const pillarAccentMat = new THREE.MeshStandardMaterial({
-      color: 0x2563eb, // Vibrant Cyber Blue
-      roughness: 0.3,
-      metalness: 0.4
-    });
-    const ledMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    // Corner Canyon Buttes
+    this.buildRockWall(60, 0, -60, 50, 60, 50, Math.PI / 4, this.colors.rockDark, 'canyon_corner_ne');
+    this.buildRockWall(75, 0, 25, 40, 50, 40, -Math.PI / 6, this.colors.rock, 'canyon_corner_se');
+    this.buildRockWall(-60, 0, -60, 60, 60, 60, -Math.PI / 4, this.colors.rockDark, 'canyon_corner_nw');
+    this.buildRockWall(-70, 0, 60, 50, 60, 50, Math.PI / 4, this.colors.rock, 'canyon_corner_sw');
 
-    const pCoords = [
-      [-12, -8], [12, -8], [-12, 10], [12, 10], [-22, 0], [22, 0]
-    ];
+    // Attack Team Tunnel Rock
+    this.createBox(65, 15, -30, 40, 20, 30, this.colors.rockDark, 0, 0, 0, 'tunnel_rock');
 
-    pCoords.forEach(([px, pz]) => {
-      const pGroup = new THREE.Group();
-      pGroup.position.set(px, 0, pz);
+    // Hoodoo Pillars
+    this.createCylinder(-25, 0, -50, 8, 40, this.colors.rockDark, 0, 0, 0, 'hoodoo1_base');
+    this.createCylinder(-25, 40, -50, 10, 10, this.colors.rock, 0, 0, 0, 'hoodoo1_cap');
+    this.createCylinder(-40, 0, -35, 6, 35, this.colors.rock, 0, 0, 0, 'hoodoo2');
 
-      // Main pillar body (2.6m x 4.5m x 2.6m)
-      const pMesh = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.5, 2.6), pillarBodyMat);
-      pMesh.position.y = 2.25;
-      pMesh.castShadow = true;
-      pMesh.receiveShadow = true;
-      pGroup.add(pMesh);
+    // 10. Props & Foliage
+    this.createCactus(25, 0, -5);
+    this.createCactus(-5, 0, 20);
+    this.createCactus(-35, 0, 25);
+    this.createCactus(10, 0, -45);
+    this.createCactus(-15, 0, 5);
 
-      // Cyber Blue Corner Plates
-      const plate = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.2, 0.4), pillarAccentMat);
-      plate.position.set(0, 2.25, 1.25);
-      pGroup.add(plate);
-
-      const plateB = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.2, 0.4), pillarAccentMat);
-      plateB.position.set(0, 2.25, -1.25);
-      pGroup.add(plateB);
-
-      // Glowing Cyan LED Strip
-      const led = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.6, 2.75), ledMat);
-      led.position.y = 2.25;
-      pGroup.add(led);
-
-      this.scene.add(pGroup);
-
-      // Register Solid Obstacle Collider
-      this.colliders.push({
-        name: `pillar_${px}_${pz}`,
-        minX: px - 1.35,
-        maxX: px + 1.35,
-        minZ: pz - 1.35,
-        maxZ: pz + 1.35,
-        minY: 0,
-        maxY: 4.5,
-        canStandOn: false
-      });
-    });
+    // Tire Piles
+    this.createCylinder(8, 0, 15, 1, 1, 0x111111, Math.PI / 2, 0, 0, 'tire1');
+    this.createCylinder(8, 1, 15, 1, 1, 0x111111, Math.PI / 2, 0, 0, 'tire2');
+    this.createCylinder(10, 0, 16, 1, 1, 0x111111, Math.PI / 2, 0, 0, 'tire3');
   }
 
-  buildTacticalProps() {
-    // High-Tech Overwatch Tactical Barricades (Low Cover with glowing shield tops)
-    const crateMat = new THREE.MeshStandardMaterial({
-      color: 0xe2e8f0,
-      roughness: 0.35,
-      metalness: 0.3
-    });
-    const orangeStripeMat = new THREE.MeshStandardMaterial({
-      color: 0xf97316,
-      roughness: 0.4
-    });
-    const energyShieldMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
-      transparent: true,
-      opacity: 0.55
-    });
-
-    const createBarricade = (bx, bz, rotY = 0) => {
-      const group = new THREE.Group();
-      group.position.set(bx, 0, bz);
-      group.rotation.y = rotY;
-
-      // Solid Lower Base (Width 3.6m, Height 1.35m, Depth 1.2m)
-      const base = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.35, 1.2), crateMat);
-      base.position.y = 0.675;
-      base.castShadow = true;
-      base.receiveShadow = true;
-      group.add(base);
-
-      // Orange Accent Chevron
-      const chev = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 1.25), orangeStripeMat);
-      chev.position.y = 0.675;
-      group.add(chev);
-
-      // Holographic Energy Shield Projection on Top (Height 0.5m)
-      const shield = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.5, 0.08), energyShieldMat);
-      shield.position.set(0, 1.6, 0);
-      group.add(shield);
-
-      this.scene.add(group);
-
-      // Register Solid Collider
-      const halfW = 1.85;
-      const halfD = 0.65;
-      this.colliders.push({
-        name: `barricade_${bx}_${bz}`,
-        minX: bx - halfW,
-        maxX: bx + halfW,
-        minZ: bz - halfD,
-        maxZ: bz + halfD,
-        minY: 0,
-        maxY: 1.85,
-        canStandOn: true
-      });
-    };
-
-    // Center arena tactical cover positions
-    createBarricade(-6, 0);
-    createBarricade(6, 0);
-
-    // High-Tech Supply Pods / Power Generators
-    const createSupplyCrate = (cx, cz) => {
-      const group = new THREE.Group();
-      group.position.set(cx, 0, cz);
-
-      const crate = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.8, 2.2), crateMat);
-      crate.position.y = 0.9;
-      crate.castShadow = true;
-      crate.receiveShadow = true;
-      group.add(crate);
-
-      const band = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.4, 2.3), orangeStripeMat);
-      band.position.y = 0.9;
-      group.add(band);
-
-      this.scene.add(group);
-
-      this.colliders.push({
-        name: `crate_${cx}_${cz}`,
-        minX: cx - 1.15,
-        maxX: cx + 1.15,
-        minZ: cz - 1.15,
-        maxZ: cz + 1.15,
-        minY: 0,
-        maxY: 1.8,
-        canStandOn: true
-      });
-    };
-
-    createSupplyCrate(-18, -10);
-    createSupplyCrate(18, -10);
-  }
-
+  // ==========================================================================
+  // DISTRIBUTED HEALTH PACKS (MEGA 250 HP & MINI 75 HP)
+  // ==========================================================================
   spawnHealthPacks() {
-    // Mega Health Pack (250 HP) on center-right
-    this.createHealthPack(16, -14, 250, 'mega');
-    // Mini Health Pack (75 HP) on center-left
-    this.createHealthPack(-16, 14, 75, 'mini');
+    // Mega Health Packs (250 HP, 10s cooldown)
+    this.createHealthPack(28, 0, 12, 250, 'mega');     // Inside/next to Big Earl's Diner
+    this.createHealthPack(-5, 0, -15, 250, 'mega');    // Under central train cliff pass
+    this.createHealthPack(-25, 0, 48, 250, 'mega');    // Inside Blue Garage
+
+    // Small Health Packs (75 HP, 6s cooldown)
+    this.createHealthPack(8, 0, 18, 75, 'mini');       // Near Gas Station Awning
+    this.createHealthPack(35, 0, -13, 75, 'mini');     // Behind Deadlock Billboard
+    this.createHealthPack(-32, 0, 2, 75, 'mini');      // Deadlock Base Supply Crates
+    this.createHealthPack(32, 7, 15, 75, 'mini');      // Diner 2nd Floor Roof Terrace
+    this.createHealthPack(15, 0, 30, 75, 'mini');      // Highway S-Curve Midpoint
   }
 
-  createHealthPack(x, z, healAmount, type) {
+  createHealthPack(x, y, z, healAmount, type) {
     const group = new THREE.Group();
-    group.position.set(x, 0, z);
+    group.position.set(x, y, z);
 
-    // Holographic Base (Clean white/chrome)
+    // Holographic Cybernetic Base
     const baseGeo = new THREE.CylinderGeometry(0.85, 1.05, 0.25, 20);
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.6, roughness: 0.3 });
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x222630,
+      metalness: 0.8,
+      roughness: 0.2
+    });
     const base = new THREE.Mesh(baseGeo, baseMat);
     base.position.y = 0.125;
     group.add(base);
 
-    // Glowing base ring
-    const ringGeo = new THREE.RingGeometry(0.88, 1.0, 24);
+    // Glowing Neon Ring
+    const ringGeo = new THREE.RingGeometry(0.88, 1.05, 24);
     const ringMat = new THREE.MeshBasicMaterial({
       color: type === 'mega' ? 0x00f0ff : 0x10b981,
       side: THREE.DoubleSide
@@ -404,9 +437,9 @@ export class MapBuilder {
     ring.position.y = 0.26;
     group.add(ring);
 
-    // Floating Medical Cross Icon
-    const crossGeo1 = new THREE.BoxGeometry(0.65, 0.22, 0.22);
-    const crossGeo2 = new THREE.BoxGeometry(0.22, 0.65, 0.22);
+    // Floating 3D Medical Cross Icon
+    const crossGeo1 = new THREE.BoxGeometry(0.75, 0.25, 0.25);
+    const crossGeo2 = new THREE.BoxGeometry(0.25, 0.75, 0.25);
     const crossMat = new THREE.MeshBasicMaterial({
       color: type === 'mega' ? 0x00f0ff : 0x10b981
     });
@@ -419,90 +452,65 @@ export class MapBuilder {
 
     this.scene.add(group);
 
-    // Register health pack base as low solid obstacle (can walk over / step up)
+    // Step-up base collider
     this.colliders.push({
       name: `healthpack_base_${x}_${z}`,
       minX: x - 0.9,
       maxX: x + 0.9,
       minZ: z - 0.9,
       maxZ: z + 0.9,
-      minY: 0,
-      maxY: 0.25,
+      minY: y,
+      maxY: y + 0.25,
       canStandOn: true
     });
 
     this.healthPacks.push({
       group,
       crossGroup,
+      baseY: y + 0.95,
       healAmount,
       type,
       active: true,
       respawnTimer: 0,
-      pos: new THREE.Vector3(x, 0.95, z)
+      pos: new THREE.Vector3(x, y + 0.95, z)
     });
   }
 
-  /**
-   * ==========================================================================
-   * 3D COLLISION DETECTION & SLIDING RESOLUTION (PASS-THROUGH PREVENTION)
-   * ==========================================================================
-   * - Prevents players and heroes from passing through walls, pillars, barricades.
-   * - Smooth sliding along obstacle surfaces.
-   * - Multi-level height resolution (ground floor vs balcony high-ground vs ramp).
-   */
-  resolveCollision(pos, radius = 0.55) {
-    let groundY = 1.7; // Standard standing eye height (floor y=0 + 1.7m)
+  // ==========================================================================
+  // 3D COLLISION RESOLUTION (PARKOUR, STEP-UP & PREVENT PASS-THROUGH)
+  // ==========================================================================
+  resolveCollision(pos, radius = 0.55, height = 3.5) {
+    let groundY = 1.7; // default ground level for player eye
     const feetY = pos.y - 1.7;
-    const headY = pos.y + 0.2;
+    const headY = pos.y + 0.3;
 
-    // 1. Check Platform & Ramp Standing Support
+    // 1. Check all solid obstacle colliders
     for (const col of this.colliders) {
-      if (pos.x >= col.minX && pos.x <= col.maxX && pos.z >= col.minZ && pos.z <= col.maxZ) {
-        if (col.isRamp) {
-          // Linear height interpolation on ramp
-          const t = Math.max(0, Math.min(1, (pos.z - col.zStart) / (col.zEnd - col.zStart)));
-          const rampH = col.yStart + t * (col.yEnd - col.yStart);
-          if (feetY >= rampH - 0.65 && feetY <= rampH + 1.0) {
-            groundY = Math.max(groundY, rampH + 1.7);
-          }
-        } else if (col.canStandOn) {
-          // If feet are near or above top surface
-          if (feetY >= col.maxY - 0.45) {
+      if (col.canStandOn) {
+        if (pos.x >= col.minX - 0.2 && pos.x <= col.maxX + 0.2 &&
+            pos.z >= col.minZ - 0.2 && pos.z <= col.maxZ + 0.2) {
+          if (feetY >= col.maxY - 0.6) {
             groundY = Math.max(groundY, col.maxY + 1.7);
           }
         }
       }
-    }
 
-    // 2. Horizontal Obstacle Penetration Resolution (Push Out / Slide)
-    for (const col of this.colliders) {
-      // If player is safely walking on TOP of this platform, skip horizontal blocking
-      if (col.canStandOn && feetY >= col.maxY - 0.15) {
-        continue;
-      }
+      // Horizontal obstacle collision
+      if (headY < col.minY || feetY > col.maxY - 0.3) continue;
 
-      // Vertical bounding check
-      if (headY < col.minY || feetY > col.maxY) {
-        continue;
-      }
-
-      // Find closest point on AABB rectangle to player (pos.x, pos.z)
       const clampedX = Math.max(col.minX, Math.min(col.maxX, pos.x));
       const clampedZ = Math.max(col.minZ, Math.min(col.maxZ, pos.z));
-
-      let dx = pos.x - clampedX;
-      let dz = pos.z - clampedZ;
+      const dx = pos.x - clampedX;
+      const dz = pos.z - clampedZ;
       const distSq = dx * dx + dz * dz;
 
       if (distSq < radius * radius) {
         const dist = Math.sqrt(distSq);
-        if (dist > 0.0001) {
-          // Push out along the normal vector by the penetration depth
+        if (dist > 1e-4) {
           const overlap = radius - dist;
           pos.x += (dx / dist) * overlap;
           pos.z += (dz / dist) * overlap;
         } else {
-          // Player center penetrated directly inside the box: push to nearest face
           const dLeft = Math.abs(pos.x - col.minX);
           const dRight = Math.abs(col.maxX - pos.x);
           const dBack = Math.abs(pos.z - col.minZ);
@@ -517,23 +525,19 @@ export class MapBuilder {
       }
     }
 
-    // 3. Absolute Perimeter Arena Clamping
-    pos.x = Math.max(-38.2, Math.min(38.2, pos.x));
-    pos.z = Math.max(-38.2, Math.min(38.2, pos.z));
+    // 2. Canyon Outer Perimeter Clamping (Route 66 boundaries)
+    pos.x = Math.max(-88.0, Math.min(88.0, pos.x));
+    pos.z = Math.max(-88.0, Math.min(88.0, pos.z));
 
     return { groundY };
   }
 
-  /**
-   * Fast obstacle collision test (used for Reinhardt charge wall slam & abilities)
-   */
   checkWallCollision(pos, radius = 0.6) {
     const feetY = pos.y - 1.7;
     const headY = pos.y + 0.2;
 
-    // Check perimeter boundary
-    if (Math.abs(pos.x) >= 38.0 || Math.abs(pos.z) >= 38.0) {
-      return { hit: true, name: 'perimeter_wall' };
+    if (Math.abs(pos.x) >= 88.0 || Math.abs(pos.z) >= 88.0) {
+      return { hit: true, name: 'canyon_wall' };
     }
 
     for (const col of this.colliders) {
@@ -553,20 +557,14 @@ export class MapBuilder {
     return { hit: false };
   }
 
-  /**
-   * Swept ray/AABB obstacle collision test for fast-moving projectiles
-   * (Shurikens, Reinhardt Fire Strike, Tracer Pulse Bomb)
-   */
   checkProjectileHit(prevPos, currentPos, radius = 0.25) {
-    // 1. Perimeter boundary check
-    if (Math.abs(currentPos.x) >= 38.0 || Math.abs(currentPos.z) >= 38.0) {
-      return { hit: true, point: currentPos.clone(), name: 'perimeter_wall' };
+    if (Math.abs(currentPos.x) >= 88.0 || Math.abs(currentPos.z) >= 88.0) {
+      return { hit: true, point: currentPos.clone(), name: 'canyon_wall' };
     }
     if (currentPos.y <= 0.08) {
       return { hit: true, point: new THREE.Vector3(currentPos.x, 0.08, currentPos.z), name: 'ground' };
     }
 
-    // 2. Obstacle Colliders
     for (const col of this.colliders) {
       const minX = col.minX - radius;
       const maxX = col.maxX + radius;
@@ -575,14 +573,12 @@ export class MapBuilder {
       const minZ = col.minZ - radius;
       const maxZ = col.maxZ + radius;
 
-      // Quick point-in-AABB check
       if (currentPos.x >= minX && currentPos.x <= maxX &&
           currentPos.y >= minY && currentPos.y <= maxY &&
           currentPos.z >= minZ && currentPos.z <= maxZ) {
         return { hit: true, point: currentPos.clone(), name: col.name };
       }
 
-      // Fast swept line-segment check (Ray-AABB slab method)
       if (prevPos) {
         const dx = currentPos.x - prevPos.x;
         const dy = currentPos.y - prevPos.y;
@@ -591,35 +587,26 @@ export class MapBuilder {
         let tMin = 0.0;
         let tMax = 1.0;
 
-        // X slab
         if (Math.abs(dx) > 1e-6) {
           const t1 = (minX - prevPos.x) / dx;
           const t2 = (maxX - prevPos.x) / dx;
           tMin = Math.max(tMin, Math.min(t1, t2));
           tMax = Math.min(tMax, Math.max(t1, t2));
-        } else if (prevPos.x < minX || prevPos.x > maxX) {
-          continue;
-        }
+        } else if (prevPos.x < minX || prevPos.x > maxX) continue;
 
-        // Y slab
         if (Math.abs(dy) > 1e-6) {
           const t1 = (minY - prevPos.y) / dy;
           const t2 = (maxY - prevPos.y) / dy;
           tMin = Math.max(tMin, Math.min(t1, t2));
           tMax = Math.min(tMax, Math.max(t1, t2));
-        } else if (prevPos.y < minY || prevPos.y > maxY) {
-          continue;
-        }
+        } else if (prevPos.y < minY || prevPos.y > maxY) continue;
 
-        // Z slab
         if (Math.abs(dz) > 1e-6) {
           const t1 = (minZ - prevPos.z) / dz;
           const t2 = (maxZ - prevPos.z) / dz;
           tMin = Math.max(tMin, Math.min(t1, t2));
           tMax = Math.min(tMax, Math.max(t1, t2));
-        } else if (prevPos.z < minZ || prevPos.z > maxZ) {
-          continue;
-        }
+        } else if (prevPos.z < minZ || prevPos.z > maxZ) continue;
 
         if (tMax >= tMin && tMin <= 1.0 && tMax >= 0.0) {
           const hitT = Math.max(0, tMin);
@@ -645,12 +632,10 @@ export class MapBuilder {
           hp.crossGroup.visible = true;
         }
       } else {
-        // Spin and bob
-        hp.crossGroup.rotation.y += 2.0 * dt;
-        hp.crossGroup.position.y = 0.95 + Math.sin(Date.now() * 0.004) * 0.12;
+        hp.crossGroup.rotation.y += 2.2 * dt;
+        hp.crossGroup.position.y = (hp.baseY || 0.95) + Math.sin(Date.now() * 0.005) * 0.12;
 
-        // Pickup check
-        if (playerPos && playerPos.distanceTo(hp.pos) < 1.7) {
+        if (playerPos && playerPos.distanceTo(hp.pos) < 2.2) {
           const picked = onHealCallback(hp.healAmount);
           if (picked) {
             hp.active = false;

@@ -204,7 +204,7 @@ export class Tracer extends HeroBase {
     const hitTargetEnd = origin.clone().add(forward.clone().multiplyScalar(40));
     projectileManager.addBulletBeam(origin, hitTargetEnd, 0x00f0ff);
 
-    return { raycaster, damage: 6, isHeadshotMultiplier: 2.0 };
+    return { raycaster, damage: 9, isHeadshotMultiplier: 2.0 };
   }
 
   secondaryFire(camera, scene, projectileManager, audio, shaker, bots, onHitCallback) {

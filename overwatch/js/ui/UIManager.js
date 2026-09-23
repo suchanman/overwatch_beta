@@ -64,6 +64,11 @@ export class UIManager {
     this.dragonbladeAura = document.getElementById('dragonblade-aura');
     this.ultFlash = document.getElementById('ult-fullscreen-flash');
 
+    // Reinhardt Center Barrier Shield HUD
+    this.reinhardtShieldHud = document.getElementById('reinhardt-shield-hud');
+    this.shieldHpCurrentEl = document.getElementById('shield-hp-current');
+    this.shieldBarFill = document.getElementById('shield-bar-fill');
+
     this.eliminations = 0;
     this.streak = 0;
   }
@@ -326,6 +331,43 @@ export class UIManager {
       } else {
         this.reloadPrompt.classList.add('hidden');
       }
+    }
+
+    // 7. Reinhardt Center Barrier Shield HUD
+    this.updateReinhardtShield(hero);
+  }
+
+  updateReinhardtShield(hero) {
+    if (!this.reinhardtShieldHud) return;
+
+    if (hero.name === 'REINHARDT' && hero.isShieldActive) {
+      this.reinhardtShieldHud.classList.remove('hidden');
+
+      const hp = Math.max(0, Math.round(hero.shieldHp));
+      const maxHp = hero.maxShieldHp || 500;
+      const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
+
+      if (this.shieldHpCurrentEl) {
+        this.shieldHpCurrentEl.textContent = hp;
+        this.shieldHpCurrentEl.classList.remove('warning', 'critical');
+        if (hp <= 120) {
+          this.shieldHpCurrentEl.classList.add('critical');
+        } else if (hp <= 250) {
+          this.shieldHpCurrentEl.classList.add('warning');
+        }
+      }
+
+      if (this.shieldBarFill) {
+        this.shieldBarFill.style.width = `${pct}%`;
+        this.shieldBarFill.classList.remove('warning', 'critical');
+        if (hp <= 120) {
+          this.shieldBarFill.classList.add('critical');
+        } else if (hp <= 250) {
+          this.shieldBarFill.classList.add('warning');
+        }
+      }
+    } else {
+      this.reinhardtShieldHud.classList.add('hidden');
     }
   }
 }

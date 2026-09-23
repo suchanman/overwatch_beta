@@ -457,6 +457,94 @@ html, body {
 }
 
 /* ==========================================================================
+   CENTER: REINHARDT BARRIER SHIELD HUD (500 HP Center Indicator)
+   ========================================================================== */
+.reinhardt-shield-hud {
+  position: absolute;
+  top: calc(50% + 50px);
+  left: 50%;
+  transform: translateX(-50%) skewX(-8deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(10, 24, 40, 0.88);
+  border: 1.5px solid #00c3ff;
+  border-radius: 4px;
+  padding: 6px 16px;
+  box-shadow: 0 0 16px rgba(0, 195, 255, 0.45), inset 0 0 10px rgba(0, 195, 255, 0.2);
+  pointer-events: none;
+  z-index: 75;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.reinhardt-shield-hud.hidden {
+  display: none !important;
+}
+
+.shield-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ow-number);
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.shield-hud-icon {
+  font-size: 15px;
+  filter: drop-shadow(0 0 5px #00c3ff);
+}
+
+.shield-hp-num {
+  font-size: 20px;
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.85);
+  transition: color 0.15s ease;
+}
+
+.shield-hp-num.warning {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.85);
+}
+
+.shield-hp-num.critical {
+  color: #ef4444;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+}
+
+.shield-hp-max {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.shield-bar-track {
+  width: 135px;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 195, 255, 0.35);
+}
+
+.shield-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0088cc, #00f0ff);
+  box-shadow: 0 0 8px #00f0ff;
+  transition: width 0.08s ease, background 0.15s ease;
+}
+
+.shield-bar-fill.warning {
+  background: linear-gradient(90deg, #d97706, #fbbf24);
+  box-shadow: 0 0 8px #fbbf24;
+}
+
+.shield-bar-fill.critical {
+  background: linear-gradient(90deg, #b91c1c, #ef4444);
+  box-shadow: 0 0 8px #ef4444;
+}
+
+/* ==========================================================================
    MID-CENTER: ELIMINATION FIRE BANNER
    ========================================================================== */
 .elimination-banner {

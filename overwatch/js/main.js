@@ -69,9 +69,11 @@ class OverwatchGame {
     this.ui = new UIManager();
 
     // 3. Player Physics State
-    this.playerPos = new THREE.Vector3(0, 1.7, 8);
+    this.playerPos = new THREE.Vector3(15, 1.7, 30);
     this.velocityY = 0;
     this.isGrounded = true;
+    this.canDoubleJump = true;
+    this.wasJumpPressed = false;
     this.gravity = -22.0;
 
     // 4. Hero Roster & Selection
@@ -123,12 +125,12 @@ class OverwatchGame {
   }
 
   spawnTrainingBots() {
-    // Spawn 4 Omnic Bots across the arena
+    // Spawn 4 Omnic Bots across Route 66 highway and key chokepoints
     const botCoords = [
-      [-6, -6],
-      [6, -6],
-      [-12, -18],
-      [12, -18]
+      [20, 15],   // Near Big Earl's Diner front road
+      [28, -5],   // Near hovering Payload
+      [5, 25],    // Highway S-curve
+      [-15, 35]   // Garage entrance
     ];
 
     botCoords.forEach(([bx, bz], idx) => {
@@ -331,6 +333,21 @@ class OverwatchGame {
 
     this.network.onPlayerHit = (targetId, attackerId, attackerName, damage, isHeadshot, remainingHp) => {
       if (targetId === this.network.selfId) {
+        // Genji Deflect check
+        if (this.currentHero.name === 'GENJI' && this.currentHero.isDeflecting) {
+          this.audio.playGenjiDeflect();
+          this.shaker.addTrauma(0.12);
+          return;
+        }
+
+        // Reinhardt Shield check
+        if (this.currentHero.name === 'REINHARDT' && this.currentHero.isShieldActive) {
+          const absorbed = this.currentHero.takeShieldDamage(damage);
+          this.audio.playHit(false);
+          this.shaker.addTrauma(0.08);
+          if (absorbed > 0) return;
+        }
+
         // Local player took damage from someone!
         this.currentHero.takeDamage(damage);
         if (remainingHp !== undefined) {
@@ -917,14 +934,13 @@ class OverwatchGame {
         // Send respawn packet to server
         this.network.sendRespawn();
 
-        // Local fallback teleport to arena spawn points
+        // Local fallback teleport to Route 66 spawn points
         const spawnPoints = [
-          [0.0, 1.7, 18.0],
-          [-18.0, 1.7, 12.0],
-          [18.0, 1.7, 12.0],
-          [-22.0, 1.7, -15.0],
-          [22.0, 1.7, -15.0],
-          [0.0, 1.7, -25.0]
+          [15.0, 1.7, 30.0],
+          [25.0, 1.7, 10.0],
+          [-10.0, 1.7, 35.0],
+          [0.0, 1.7, 5.0],
+          [40.0, 1.7, -20.0]
         ];
         const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
         this.playerPos.set(sp[0], sp[1], sp[2]);
@@ -992,7 +1008,16 @@ class OverwatchGame {
         this.map
       );
 
-      // 6. Projectiles Update (against bots and remote players) with Map Wall Collisions
+      // 6. Projectiles Update (against bots and remote players) with Map Wall Collisions & Player Context
+      const playerCtx = {
+        playerPos: this.playerPos,
+        currentHero: this.currentHero,
+        camera: this.camera,
+        audio: this.audio,
+        shaker: this.shaker,
+        ui: this.ui
+      };
+
       this.projectiles.update(dt, allTargets, (target, dmg, head, kill) => {
         if (target instanceof RemotePlayer) {
           if (target.id) {
@@ -1003,10 +1028,10 @@ class OverwatchGame {
         } else {
           this.handleCombatHit(target, dmg, head, kill);
         }
-      }, this.map);
+      }, this.map, playerCtx);
 
-      // 7. Bots Update & AI
-      this.bots.forEach((bot) => bot.update(dt, this.playerPos));
+      // 7. Bots Update & AI (with combat projectile shooting)
+      this.bots.forEach((bot) => bot.update(dt, this.playerPos, this.projectiles));
 
       // 8. Health Packs Check
       this.map.update(dt, this.playerPos, (healAmount) => {
@@ -1063,27 +1088,53 @@ class OverwatchGame {
     if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing) {
       moveVelocity.set(0, 0, 0);
     }
-    this.playerPos.addScaledVector(moveVelocity, this.currentHero.speed * dt);
 
-    // 1. Resolve 3D Obstacle & Platform Collisions (Prevents passing through pillars, barricades, crates, walls)
+    // REINHARDT: Movement speed halved (50%) while holding Barrier Shield
+    let moveSpeed = this.currentHero.speed;
+    if (this.currentHero.name === 'REINHARDT' && this.currentHero.isShieldActive) {
+      moveSpeed *= 0.5;
+    }
+    this.playerPos.addScaledVector(moveVelocity, moveSpeed * dt);
+
+    // 1. Resolve 3D Obstacle & Platform Collisions
     const colResult = this.map.resolveCollision(this.playerPos, 0.55);
 
     // 2. Gravity & Jump
     this.velocityY += this.gravity * dt;
     this.playerPos.y += this.velocityY * dt;
 
-    // 3. Multi-level Ground Collision (Floor level 1.7m vs Balcony 5.7m vs Ramp)
+    // 3. Multi-level Ground Collision
     if (this.playerPos.y <= colResult.groundY) {
       this.playerPos.y = colResult.groundY;
       this.velocityY = 0;
       this.isGrounded = true;
+      this.canDoubleJump = true; // Landing resets double jump
     } else {
       this.isGrounded = false;
     }
 
-    if (this.input.keys.jump && this.isGrounded) {
-      this.velocityY = this.currentHero.jumpForce;
-      this.isGrounded = false;
+    // Jump Input with Genji Double Jump
+    const jumpPressed = !!this.input.keys.jump;
+    const jumpJustPressed = jumpPressed && !this.wasJumpPressed;
+    this.wasJumpPressed = jumpPressed;
+
+    if (jumpJustPressed) {
+      if (this.isGrounded) {
+        this.velocityY = this.currentHero.jumpForce;
+        this.isGrounded = false;
+        if (this.currentHero.name === 'GENJI') {
+          this.canDoubleJump = true;
+        }
+      } else if (this.currentHero.name === 'GENJI' && this.canDoubleJump) {
+        // GENJI 2단점프 (Mid-air Double Jump)
+        this.velocityY = this.currentHero.jumpForce * 1.05;
+        this.canDoubleJump = false;
+        if (this.audio) this.audio.playTracerBlink();
+        if (this.shaker) this.shaker.addTrauma(0.12);
+        if (this.projectiles && typeof this.projectiles.spawnHitSparks === 'function') {
+          this.projectiles.spawnHitSparks(this.playerPos.clone().sub(new THREE.Vector3(0, 0.8, 0)), new THREE.Vector3(0, -1, 0), 0x00ff88);
+        }
+      }
     }
 
     // 4. Secondary safety collision check after vertical update

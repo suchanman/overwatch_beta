@@ -214,6 +214,67 @@ export class Genji extends HeroBase {
     this.weaponGroup.add(this.dragonArc);
 
     this.weaponGroup.add(this.katanaGroup);
+
+    // ========================================================================
+    // 3. DEFLECT WAKIZASHI & DEFLECT ARCS (Authentic 1st-person Deflect viewmodel)
+    // ========================================================================
+    this.deflectGroup = new THREE.Group();
+    this.deflectGroup.visible = false;
+
+    // Wakizashi Short Katana
+    const wakizashi = new THREE.Group();
+    
+    // Blade
+    const wakiBladeGeo = new THREE.BoxGeometry(0.018, 0.055, 0.58);
+    const wakiBlade = new THREE.Mesh(wakiBladeGeo, glowBrightGreenMat);
+    wakiBlade.position.set(0, 0.05, -0.26);
+    wakizashi.add(wakiBlade);
+
+    // Spine
+    const wakiSpineGeo = new THREE.BoxGeometry(0.026, 0.038, 0.58);
+    const wakiSpine = new THREE.Mesh(wakiSpineGeo, darkNinjaMat);
+    wakiSpine.position.set(0, 0.075, -0.26);
+    wakizashi.add(wakiSpine);
+
+    // Guard (Tsuba)
+    const wakiTsubaGeo = new THREE.BoxGeometry(0.065, 0.085, 0.025);
+    const wakiTsuba = new THREE.Mesh(wakiTsubaGeo, goldPlateMat);
+    wakiTsuba.position.set(0, 0.04, 0.03);
+    wakizashi.add(wakiTsuba);
+
+    // Tsuka Handle
+    const wakiHiltGeo = new THREE.CylinderGeometry(0.024, 0.026, 0.20, 8);
+    const wakiHilt = new THREE.Mesh(wakiHiltGeo, darkNinjaMat);
+    wakiHilt.rotation.x = Math.PI / 2;
+    wakiHilt.position.set(0, 0.04, 0.13);
+    wakizashi.add(wakiHilt);
+
+    // Cybernetic Ninja Hand gripping the wakizashi
+    const wakiGrip = this.createNinjaGrip(darkNinjaMat, goldPlateMat);
+    wakiGrip.position.set(0.02, 0.03, 0.10);
+    wakizashi.add(wakiGrip);
+
+    this.deflectGroup.add(wakizashi);
+    this.deflectWakizashi = wakizashi;
+
+    // Deflect Cross-Slash Visual Arcs (Two criss-crossing energy slash arcs)
+    const deflectArcGeo = new THREE.RingGeometry(0.55, 0.95, 24, 1, 0, Math.PI * 0.7);
+    this.deflectArcMat = new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide
+    });
+    this.deflectArc1 = new THREE.Mesh(deflectArcGeo, this.deflectArcMat);
+    this.deflectArc1.position.set(0, 0, -0.45);
+    this.deflectGroup.add(this.deflectArc1);
+
+    this.deflectArc2 = new THREE.Mesh(deflectArcGeo, this.deflectArcMat);
+    this.deflectArc2.position.set(0, 0, -0.45);
+    this.deflectArc2.rotation.z = Math.PI * 0.65;
+    this.deflectGroup.add(this.deflectArc2);
+
+    this.weaponGroup.add(this.deflectGroup);
   }
 
   createNinjaGrip(bodyMat, trimMat) {
@@ -363,8 +424,12 @@ export class Genji extends HeroBase {
     this.deflectTimer = this.deflectDuration;
     this.ability2Timer = this.ability2Cooldown;
 
+    if (this.deflectGroup) this.deflectGroup.visible = true;
+    if (this.armGroup) this.armGroup.visible = false;
+    if (this.katanaGroup) this.katanaGroup.visible = false;
+
     if (audio) audio.playGenjiDeflect();
-    if (shaker) shaker.addTrauma(0.2);
+    if (shaker) shaker.addTrauma(0.25);
     return true;
   }
 
@@ -387,6 +452,7 @@ export class Genji extends HeroBase {
     // Switch viewmodel: Reveal Dragonblade Katana, hide shuriken arm!
     this.katanaGroup.visible = true;
     this.armGroup.visible = false;
+    if (this.deflectGroup) this.deflectGroup.visible = false;
     this.katanaGroup.position.copy(this.katanaIdlePos);
     this.katanaGroup.rotation.copy(this.katanaIdleRot);
 
@@ -398,7 +464,7 @@ export class Genji extends HeroBase {
   }
 
   onEnemyEliminated() {
-    // SWIFT STRIKE RESET PASSIVE!
+    // SWIFT STRIKE RESET PASSIVE! (Instantly resets Swift Strike cooldown upon ANY kill)
     this.ability1Timer = 0;
   }
 
@@ -454,11 +520,49 @@ export class Genji extends HeroBase {
       }
     }
 
-    // 2. Deflect Timer
+    // 2. Deflect Timer & Dynamic Criss-Cross Deflect Slashing Motion
     if (this.isDeflecting) {
       this.deflectTimer -= dt;
+
+      if (this.deflectGroup && this.deflectWakizashi) {
+        this.deflectGroup.visible = true;
+        if (this.armGroup) this.armGroup.visible = false;
+        if (this.katanaGroup) this.katanaGroup.visible = false;
+
+        // Fast alternating figure-8 cross-slash motion!
+        const elapsed = (this.deflectDuration - this.deflectTimer);
+        const t = elapsed * 22; // rapid speed
+        const slashX = Math.sin(t) * 0.24;
+        const slashY = -0.10 + Math.abs(Math.cos(t * 0.5)) * 0.12;
+        const slashZ = -0.34 + Math.sin(t * 2) * 0.05;
+
+        this.deflectWakizashi.position.set(slashX, slashY, slashZ);
+        this.deflectWakizashi.rotation.set(
+          0.25 + Math.sin(t) * 0.35,
+          Math.sin(t) * -0.5,
+          Math.sin(t) * 1.1,
+          'YXZ'
+        );
+
+        if (this.deflectArcMat) {
+          this.deflectArcMat.opacity = 0.55 + 0.40 * Math.abs(Math.sin(t * 2));
+        }
+        if (this.deflectArc1) {
+          this.deflectArc1.rotation.z = t * 2.2;
+        }
+        if (this.deflectArc2) {
+          this.deflectArc2.rotation.z = -t * 2.5 + Math.PI * 0.45;
+        }
+      }
+
       if (this.deflectTimer <= 0) {
         this.isDeflecting = false;
+        if (this.deflectGroup) this.deflectGroup.visible = false;
+        if (this.isUltActive) {
+          if (this.katanaGroup) this.katanaGroup.visible = true;
+        } else {
+          if (this.armGroup) this.armGroup.visible = true;
+        }
       }
     }
 
