@@ -702,15 +702,18 @@ html, body {
 }
 
 /* ==========================================================================
-   BOTTOM CENTER: RADIAL ULTIMATE METER
+   BOTTOM CENTER: RADIAL ULTIMATE METER (Positioned slightly below screen center)
    ========================================================================== */
 .bottom-center-hud {
-  align-self: flex-end;
+  position: fixed;
+  left: 50%;
+  top: 67%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
-  margin-bottom: clamp(2px, 0.8vh, 8px);
+  z-index: 35;
 }
 
 .ult-meter-wrapper {
@@ -1554,8 +1557,8 @@ html, body {
   position: absolute;
   bottom: max(8px, env(safe-area-inset-bottom, 8px));
   right: max(8px, env(safe-area-inset-right, 8px));
-  width: clamp(210px, 42vmin, 310px);
-  height: clamp(170px, 34vmin, 250px);
+  width: clamp(260px, 48vmin, 380px);
+  height: clamp(210px, 40vmin, 310px);
   pointer-events: none;
   z-index: 25;
 }
@@ -1589,8 +1592,8 @@ html, body {
 /* Primary Fire + Drag-to-Aim Button (Large Thumb Home Anchor) */
 .btn-fire {
   position: absolute;
-  width: clamp(54px, 11vmin, 74px);
-  height: clamp(54px, 11vmin, 74px);
+  width: clamp(68px, 13.5vmin, 92px);
+  height: clamp(68px, 13.5vmin, 92px);
   bottom: 4%;
   right: 4%;
   background: linear-gradient(135deg, rgba(240, 100, 20, 0.95) 0%, rgba(255, 140, 0, 0.95) 100%);
@@ -1604,15 +1607,15 @@ html, body {
   border-color: #ffffff;
   box-shadow: 0 0 25px rgba(255, 100, 0, 0.95);
 }
-.btn-fire .btn-icon { font-size: clamp(20px, 4vmin, 26px); }
-.btn-fire .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 900; letter-spacing: 0.5px; }
+.btn-fire .btn-icon { font-size: clamp(24px, 4.8vmin, 32px); }
+.btn-fire .btn-lbl { font-size: clamp(9px, 1.8vmin, 11px); font-weight: 900; letter-spacing: 0.5px; }
 
 /* Jump Button (Directly above Fire for easy thumb slide) */
 .btn-jump {
   position: absolute;
-  width: clamp(40px, 8vmin, 52px);
-  height: clamp(40px, 8vmin, 52px);
-  bottom: 44%;
+  width: clamp(52px, 10vmin, 70px);
+  height: clamp(52px, 10vmin, 70px);
+  bottom: 50%;
   right: 5%;
   border-color: rgba(0, 240, 255, 0.6);
   background: rgba(14, 116, 144, 0.85);
@@ -1623,16 +1626,16 @@ html, body {
   border-color: #00f0ff;
   box-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
 }
-.btn-jump .btn-icon { font-size: clamp(12px, 2.4vmin, 15px); }
-.btn-jump .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 800; }
+.btn-jump .btn-icon { font-size: clamp(16px, 3.2vmin, 22px); }
+.btn-jump .btn-lbl { font-size: clamp(8.5px, 1.6vmin, 10.5px); font-weight: 800; }
 
 /* Ability 1: Shift (Diagonal upper-left of Fire) */
 .btn-shift {
   position: absolute;
-  width: clamp(40px, 8vmin, 52px);
-  height: clamp(40px, 8vmin, 52px);
-  bottom: 44%;
-  right: 32%;
+  width: clamp(52px, 10vmin, 70px);
+  height: clamp(52px, 10vmin, 70px);
+  bottom: 50%;
+  right: 36%;
   border-color: rgba(245, 158, 11, 0.6);
 }
 .btn-shift:active, .btn-shift.active {
@@ -1641,16 +1644,16 @@ html, body {
   border-color: #fbbf24;
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
 }
-.btn-shift .btn-icon { font-size: clamp(14px, 2.8vmin, 18px); }
-.btn-shift .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 800; }
+.btn-shift .btn-icon { font-size: clamp(18px, 3.6vmin, 24px); }
+.btn-shift .btn-lbl { font-size: clamp(8.5px, 1.6vmin, 10.5px); font-weight: 800; }
 
 /* Ability 2: E (Directly left of Fire) */
 .btn-e {
   position: absolute;
-  width: clamp(40px, 8vmin, 52px);
-  height: clamp(40px, 8vmin, 52px);
+  width: clamp(52px, 10vmin, 70px);
+  height: clamp(52px, 10vmin, 70px);
   bottom: 5%;
-  right: 40%;
+  right: 44%;
   border-color: rgba(168, 85, 247, 0.6);
 }
 .btn-e:active, .btn-e.active {
@@ -1659,16 +1662,16 @@ html, body {
   border-color: #c084fc;
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
 }
-.btn-e .btn-icon { font-size: clamp(14px, 2.8vmin, 18px); }
-.btn-e .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 800; }
+.btn-e .btn-icon { font-size: clamp(18px, 3.6vmin, 24px); }
+.btn-e .btn-lbl { font-size: clamp(8.5px, 1.6vmin, 10.5px); font-weight: 800; }
 
 /* Secondary Fire / Alt (Between E and Shift) */
 .btn-alt {
   position: absolute;
-  width: clamp(36px, 7.2vmin, 46px);
-  height: clamp(36px, 7.2vmin, 46px);
-  bottom: 28%;
-  right: 58%;
+  width: clamp(48px, 9.2vmin, 64px);
+  height: clamp(48px, 9.2vmin, 64px);
+  bottom: 30%;
+  right: 64%;
   border-color: rgba(56, 189, 248, 0.6);
 }
 .btn-alt:active, .btn-alt.active {
@@ -1677,16 +1680,16 @@ html, body {
   border-color: #38bdf8;
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
 }
-.btn-alt .btn-icon { font-size: clamp(13px, 2.5vmin, 16px); }
-.btn-alt .btn-lbl { font-size: clamp(7px, 1.3vmin, 8.5px); font-weight: 800; }
+.btn-alt .btn-icon { font-size: clamp(16px, 3.2vmin, 22px); }
+.btn-alt .btn-lbl { font-size: clamp(8px, 1.5vmin, 10px); font-weight: 800; }
 
 /* Ultimate: Q (Crown above the thumb arc) */
 .btn-ult {
   position: absolute;
-  width: clamp(44px, 9vmin, 60px);
-  height: clamp(44px, 9vmin, 60px);
-  bottom: 74%;
-  right: 20%;
+  width: clamp(56px, 11vmin, 76px);
+  height: clamp(56px, 11vmin, 76px);
+  bottom: 78%;
+  right: 22%;
   background: radial-gradient(circle, rgba(0, 240, 255, 0.4) 0%, rgba(15, 23, 42, 0.95) 80%);
   border-color: var(--ow-ult-cyan);
   box-shadow: 0 0 18px var(--ow-ult-glow);
@@ -1697,16 +1700,16 @@ html, body {
   border-color: #ffffff;
   box-shadow: 0 0 28px rgba(255, 184, 0, 0.95);
 }
-.btn-ult .btn-icon { font-size: clamp(16px, 3.2vmin, 20px); color: #ffb800; }
-.btn-ult .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 900; color: #00f0ff; }
+.btn-ult .btn-icon { font-size: clamp(20px, 4vmin, 28px); color: #ffb800; }
+.btn-ult .btn-lbl { font-size: clamp(9px, 1.8vmin, 11px); font-weight: 900; color: #00f0ff; }
 
 /* Reload Button (Left wing of thumb reach) */
 .btn-reload {
   position: absolute;
-  width: clamp(34px, 6.8vmin, 42px);
-  height: clamp(34px, 6.8vmin, 42px);
-  bottom: 6%;
-  right: 68%;
+  width: clamp(46px, 8.8vmin, 60px);
+  height: clamp(46px, 8.8vmin, 60px);
+  bottom: 5%;
+  right: 74%;
   border-color: rgba(255, 255, 255, 0.3);
 }
 .btn-reload:active, .btn-reload.active {
@@ -1715,8 +1718,8 @@ html, body {
   border-color: #ffffff;
   box-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
 }
-.btn-reload .btn-icon { font-size: clamp(12px, 2.4vmin, 15px); }
-.btn-reload .btn-lbl { font-size: clamp(7px, 1.3vmin, 8px); font-weight: 800; }
+.btn-reload .btn-icon { font-size: clamp(16px, 3vmin, 20px); }
+.btn-reload .btn-lbl { font-size: clamp(8px, 1.5vmin, 9.5px); font-weight: 800; }
 
 /* Responsive Media Queries for Mobile Touch Devices */
 @media (hover: none) and (pointer: coarse), (max-width: 950px) {
@@ -1737,13 +1740,14 @@ html, body {
     pointer-events: none;
   }
 
-  /* Ammo display on mobile is docked cleanly above the fire button cluster */
+  /* Ammo display on mobile is docked cleanly above the enlarged fire button cluster */
   .bottom-right-hud {
     position: absolute;
-    bottom: calc(max(8px, env(safe-area-inset-bottom, 8px)) + clamp(170px, 34vmin, 250px) + 6px);
+    bottom: calc(max(8px, env(safe-area-inset-bottom, 8px)) + clamp(210px, 40vmin, 310px) + 8px);
     right: max(14px, env(safe-area-inset-right, 14px));
     transform: skewX(-10deg) scale(0.85);
     transform-origin: bottom right;
+    pointer-events: none;
   }
 
   .start-card {
