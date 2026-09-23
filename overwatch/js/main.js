@@ -546,22 +546,42 @@ class OverwatchGame {
     this.initLobbyHeroShowcase();
 
     heroCards.forEach((card) => {
-      card.addEventListener('click', () => {
+      const handleSelect = (e) => {
+        if (e && e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+        const pick = card.getAttribute('data-hero');
+        if (!pick) return;
+
         heroCards.forEach((c) => c.classList.remove('active'));
         card.classList.add('active');
-        const pick = card.getAttribute('data-hero');
+
         this.switchHero(pick);
+        if (this.audio && this.audio.playSelectClick) {
+          this.audio.playSelectClick();
+        }
         if (this.updateLobbyShowcaseHero) {
           this.updateLobbyShowcaseHero(pick);
         }
-      });
+      };
+
+      card.addEventListener('click', handleSelect);
+      card.addEventListener('keydown', handleSelect);
     });
 
-    const startGame = () => {
+    let isStarting = false;
+    const startGame = (e) => {
+      if (e) e.preventDefault();
+      if (isStarting) return;
+      isStarting = true;
+
+      if (this.audio) {
+        if (this.audio.playBattleStart) this.audio.playBattleStart();
+        this.audio.unlock();
+      }
+
       if (this.stopLobbyShowcase) {
         this.stopLobbyShowcase();
       }
-      this.audio.unlock();
+
       startOverlay.style.display = 'none';
       this.ui.showHUD();
 
@@ -582,9 +602,14 @@ class OverwatchGame {
         document.documentElement.requestFullscreen().catch(() => {});
       }
 
-      // On desktop, request pointer lock; on mobile, touch controls are active
-      if (!this.isTouchDevice) {
-        this.renderer.domElement.requestPointerLock();
+      // On desktop, request pointer lock; catch promise rejection cleanly
+      if (!this.isTouchDevice && this.renderer && this.renderer.domElement) {
+        try {
+          const lockPromise = this.renderer.domElement.requestPointerLock();
+          if (lockPromise && typeof lockPromise.catch === 'function') {
+            lockPromise.catch(() => {});
+          }
+        } catch (_) {}
       }
     };
 
@@ -783,29 +808,48 @@ class OverwatchGame {
     const modal = document.getElementById('hero-switch-modal');
     const switchCards = document.querySelectorAll('.switch-card');
 
+    const requestLock = () => {
+      if (!this.isTouchDevice && this.renderer && this.renderer.domElement) {
+        try {
+          const p = this.renderer.domElement.requestPointerLock();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        } catch (_) {}
+      }
+    };
+
     this.input.onHeroSwitchRequested = (action) => {
       if (action === 'toggle_modal') {
         const isHidden = modal.classList.contains('hidden');
         if (isHidden) {
           modal.classList.remove('hidden');
-          if (!this.isTouchDevice) document.exitPointerLock();
+          if (!this.isTouchDevice) {
+            try { document.exitPointerLock(); } catch (_) {}
+          }
         } else {
           modal.classList.add('hidden');
-          if (!this.isTouchDevice) this.renderer.domElement.requestPointerLock();
+          requestLock();
         }
       } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt') {
         this.switchHero(action);
+        if (this.audio && this.audio.playSelectClick) {
+          this.audio.playSelectClick();
+        }
         modal.classList.add('hidden');
-        if (!this.isTouchDevice) this.renderer.domElement.requestPointerLock();
+        requestLock();
       }
     };
 
     switchCards.forEach((btn) => {
       btn.addEventListener('click', () => {
         const pick = btn.getAttribute('data-pick');
-        this.switchHero(pick);
+        if (pick) {
+          this.switchHero(pick);
+          if (this.audio && this.audio.playSelectClick) {
+            this.audio.playSelectClick();
+          }
+        }
         modal.classList.add('hidden');
-        if (!this.isTouchDevice) this.renderer.domElement.requestPointerLock();
+        requestLock();
       });
     });
   }

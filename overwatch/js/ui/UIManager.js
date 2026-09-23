@@ -112,8 +112,8 @@ export class UIManager {
   showEliminationBanner(victimName) {
     this.eliminations++;
     this.streak++;
-    this.elimCountEl.textContent = this.eliminations;
-    this.streakCountEl.textContent = this.streak;
+    if (this.elimCountEl) this.elimCountEl.textContent = this.eliminations;
+    if (this.streakCountEl) this.streakCountEl.textContent = this.streak;
 
     this.elimVictimEl.textContent = victimName;
     this.elimBannerEl.classList.remove('hidden');

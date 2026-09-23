@@ -11,8 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Pretendard:wght@600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
   
-  <!-- Three.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js (Local with CDN Fallback) -->
+  <script src="js/libs/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -312,21 +317,21 @@
       </div>
 
       <div class="hero-showcase-row">
-        <div class="hero-select-card active" data-hero="tracer">
+        <button type="button" class="hero-select-card active" data-hero="tracer">
           <div class="card-hero-img tracer-img"></div>
           <div class="card-hero-name">트레이서 (TRACER)</div>
           <div class="card-hero-desc">초고속 연사 펄스 쌍권총 & 3연속 점멸과 시간 역행</div>
-        </div>
-        <div class="hero-select-card" data-hero="genji">
+        </button>
+        <button type="button" class="hero-select-card" data-hero="genji">
           <div class="card-hero-img genji-img"></div>
           <div class="card-hero-name">겐지 (GENJI)</div>
           <div class="card-hero-desc">정밀 수리검, 쿨다운 리셋 질풍참, 탄환 튕겨내기, 용검</div>
-        </div>
-        <div class="hero-select-card" data-hero="reinhardt">
+        </button>
+        <button type="button" class="hero-select-card" data-hero="reinhardt">
           <div class="card-hero-img reinhardt-img"></div>
           <div class="card-hero-name">라인하르트 (REINHARDT)</div>
           <div class="card-hero-desc">묵직한 로켓 해머 타격, 2000HP 방벽, 돌진 핀, 대지분쇄</div>
-        </div>
+        </button>
       </div>
 
       <!-- Multiplayer Settings Form -->
@@ -348,7 +353,7 @@
       </div>
 
       <div class="lobby-start-group">
-        <button id="btn-start-game" class="btn-ow-primary">
+        <button id="btn-start-game" class="btn-ow-primary" type="button">
           <span class="btn-text">전투 개시 (ENTER ARENA)</span>
         </button>
         <button id="btn-copy-invite" class="btn-ow-secondary" type="button" title="친구 초대 링크 복사">
@@ -428,7 +433,7 @@
     </div>
   </div>
 
-  <!-- Game Scripts -->
-  <script type="module" src="js/main.js"></script>
+  <!-- Game Scripts (Universal Standalone Bundle: works directly with file:// and http://) -->
+  <script src="js/bundle.js"></script>
 </body>
 </html>

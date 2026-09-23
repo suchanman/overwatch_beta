@@ -8,8 +8,6 @@
  * ============================================================================
  */
 
-import * as THREE from 'three';
-
 export class MapBuilder {
   constructor(scene) {
     this.scene = scene;
@@ -138,6 +136,7 @@ export class MapBuilder {
   }
 
   addCollider(mesh, name = 'obstacle', canStandOn = true) {
+    mesh.updateMatrixWorld(true);
     mesh.geometry.computeBoundingBox();
     const box3 = new THREE.Box3();
     box3.setFromObject(mesh);

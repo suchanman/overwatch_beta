@@ -1246,6 +1246,9 @@ html, body {
 }
 
 .hero-select-card {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
   background: rgba(20, 24, 32, 0.8);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
@@ -1255,8 +1258,13 @@ html, body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  outline: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   transform: skewX(-8deg);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  box-sizing: border-box;
 }
 
 .hero-select-card:hover,
@@ -1265,6 +1273,15 @@ html, body {
   background: rgba(30, 36, 48, 0.9);
   transform: skewX(-8deg) translateY(-4px);
   box-shadow: 0 8px 24px rgba(240, 100, 20, 0.3);
+}
+
+.hero-select-card:focus-visible {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+}
+
+.hero-select-card:active {
+  transform: skewX(-8deg) scale(0.97) translateY(1px);
 }
 
 .card-hero-img {

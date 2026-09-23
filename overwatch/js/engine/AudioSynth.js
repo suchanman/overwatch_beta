@@ -18,19 +18,61 @@ export class AudioSynth {
 
   init() {
     if (this.ctx) return;
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AudioContext();
-    this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-    this.masterGain.connect(this.ctx.destination);
-    this.isUnlocked = true;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.ctx = new AudioContext();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
+        this.isUnlocked = true;
+      }
+    } catch (_) {}
   }
 
   unlock() {
     this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      try { this.ctx.resume(); } catch (_) {}
     }
+  }
+
+  playSelectClick() {
+    this.unlock();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(700, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (_) {}
+  }
+
+  playBattleStart() {
+    this.unlock();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch (_) {}
   }
 
   // ==========================================================================
