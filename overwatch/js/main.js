@@ -27,6 +27,7 @@ import { Tracer } from './heroes/Tracer.js';
 import { Genji } from './heroes/Genji.js';
 import { Reinhardt } from './heroes/Reinhardt.js';
 import { UIManager } from './ui/UIManager.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel } from './entities/HeroModels.js';
 
 class OverwatchGame {
   constructor() {
@@ -488,16 +489,24 @@ class OverwatchGame {
     const nickInput = document.getElementById('player-nickname-input');
     const serverInput = document.getElementById('server-url-input');
 
+    this.initLobbyHeroShowcase();
+
     heroCards.forEach((card) => {
       card.addEventListener('click', () => {
         heroCards.forEach((c) => c.classList.remove('active'));
         card.classList.add('active');
         const pick = card.getAttribute('data-hero');
         this.switchHero(pick);
+        if (this.updateLobbyShowcaseHero) {
+          this.updateLobbyShowcaseHero(pick);
+        }
       });
     });
 
     const startGame = () => {
+      if (this.stopLobbyShowcase) {
+        this.stopLobbyShowcase();
+      }
       this.audio.unlock();
       startOverlay.style.display = 'none';
       this.ui.showHUD();
@@ -533,6 +542,170 @@ class OverwatchGame {
         this.copyInviteLink(btnCopyInvite);
       });
     }
+  }
+
+  // ==========================================================================
+  // REAL-TIME 3D LOBBY HERO SHOWCASE
+  // ==========================================================================
+  initLobbyHeroShowcase() {
+    const canvas = document.getElementById('lobby-hero-canvas');
+    if (!canvas) return;
+
+    const width = canvas.clientWidth || 540;
+    const height = canvas.clientHeight || 250;
+
+    const scene = new THREE.Scene();
+    scene.background = null;
+
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 50);
+    camera.position.set(0, 1.15, 3.4);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(width, height, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+
+    // Atmospheric lighting for showroom
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfff5ea, 1.6);
+    keyLight.position.set(2, 4, 3);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x7dd3fc, 2.2);
+    rimLight.position.set(-3, 2, -2);
+    scene.add(rimLight);
+
+    const goldRim = new THREE.DirectionalLight(0xf59e0b, 1.6);
+    goldRim.position.set(3, 1, -2);
+    scene.add(goldRim);
+
+    // Studio pedestal disk
+    const floorGeo = new THREE.CylinderGeometry(1.2, 1.3, 0.05, 32);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.4,
+      metalness: 0.6
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -0.025;
+    scene.add(floor);
+
+    // Glowing border ring
+    const ringGeo = new THREE.RingGeometry(1.18, 1.22, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xf97316, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.005;
+    scene.add(ring);
+
+    const showcaseGroup = new THREE.Group();
+    scene.add(showcaseGroup);
+
+    let isDragging = false;
+    let prevMouseX = 0;
+    let targetRotY = 0;
+    let currentRotY = 0;
+    let autoRotate = true;
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      prevMouseX = e.clientX;
+      autoRotate = false;
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouseX;
+      targetRotY += dx * 0.015;
+      prevMouseX = e.clientX;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        isDragging = true;
+        prevMouseX = e.touches[0].clientX;
+        autoRotate = false;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => { isDragging = false; });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length === 0) return;
+      const dx = e.touches[0].clientX - prevMouseX;
+      targetRotY += dx * 0.015;
+      prevMouseX = e.touches[0].clientX;
+    }, { passive: true });
+
+    const heroTitle = document.getElementById('lobby-hero-title');
+
+    const loadHero = (heroKey) => {
+      while (showcaseGroup.children.length > 0) {
+        showcaseGroup.remove(showcaseGroup.children[0]);
+      }
+      targetRotY = 0;
+      currentRotY = 0;
+
+      if (heroKey === 'reinhardt') {
+        const data = buildReinhardtModel(showcaseGroup);
+        data.rootGroup.rotation.y = 0;
+        camera.position.set(0, 1.25, 3.8);
+        if (heroTitle) heroTitle.textContent = '라인하르트 (REINHARDT)';
+        ringMat.color.setHex(0xf59e0b);
+      } else if (heroKey === 'genji') {
+        const data = buildGenjiModel(showcaseGroup);
+        data.rootGroup.rotation.y = 0;
+        camera.position.set(0, 0.95, 3.0);
+        if (heroTitle) heroTitle.textContent = '겐지 (GENJI)';
+        ringMat.color.setHex(0x55ff22);
+      } else {
+        const data = buildTracerModel(showcaseGroup);
+        data.rootGroup.rotation.y = 0;
+        camera.position.set(0, 0.9, 2.9);
+        if (heroTitle) heroTitle.textContent = '트레이서 (TRACER)';
+        ringMat.color.setHex(0xf97316);
+      }
+    };
+
+    loadHero(this.currentHeroKey || 'tracer');
+    this.updateLobbyShowcaseHero = loadHero;
+
+    let animId = null;
+    let isRunning = true;
+
+    const renderShowcase = () => {
+      if (!isRunning) return;
+      animId = requestAnimationFrame(renderShowcase);
+
+      if (autoRotate && !isDragging) {
+        targetRotY += 0.007;
+      }
+      currentRotY += (targetRotY - currentRotY) * 0.1;
+      showcaseGroup.rotation.y = currentRotY;
+
+      renderer.render(scene, camera);
+    };
+    renderShowcase();
+
+    this.stopLobbyShowcase = () => {
+      isRunning = false;
+      if (animId) cancelAnimationFrame(animId);
+      renderer.dispose();
+    };
+
+    window.addEventListener('resize', () => {
+      if (!isRunning || !canvas) return;
+      const nw = canvas.clientWidth || 540;
+      const nh = canvas.clientHeight || 250;
+      camera.aspect = nw / nh;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nw, nh, false);
+    });
   }
 
   copyInviteLink(btnElement) {

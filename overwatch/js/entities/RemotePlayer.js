@@ -1,13 +1,4 @@
-/**
- * ============================================================================
- * REMOTE PLAYER 3D ENTITY (RemotePlayer.js)
- * - 3D Procedural Avatar for Tracer, Genji, and Reinhardt
- * - Authentic Headshot Hitbox (Critical DINK Hit Node) & Body Hitbox
- * - Overhead 3D Canvas Billboard: Nickname + Role + Trailing Health Bar
- * - Reinhardt Deployable Energy Barrier Shield Mesh
- * - Butter-smooth 60FPS Position & Rotation Lerp Interpolation
- * ============================================================================
- */
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel } from './HeroModels.js';
 
 export class RemotePlayer {
   constructor(scene, playerData) {
@@ -34,6 +25,7 @@ export class RemotePlayer {
 
     // Hit reaction
     this.flashTimer = 0;
+    this.flashMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.squashScale = new THREE.Vector3(1, 1, 1);
     this.targetSquash = new THREE.Vector3(1, 1, 1);
 
@@ -44,6 +36,7 @@ export class RemotePlayer {
 
     // Model parts
     this.modelGroup = new THREE.Group();
+    this.modelGroup.rotation.y = Math.PI; // Face forward in player look direction
     this.group.add(this.modelGroup);
 
     this.headMesh = null;
@@ -73,7 +66,7 @@ export class RemotePlayer {
   }
 
   // ==========================================================================
-  // 3D PROCEDURAL HERO MODELS
+  // 3D HIGH-FIDELITY OVERWATCH HERO MODELS (HeroModels.js)
   // ==========================================================================
   buildModel(heroKey) {
     // Clear old model parts if switching heroes
@@ -82,211 +75,47 @@ export class RemotePlayer {
     }
     this.hitMeshes = [];
     this.origMaterials.clear();
+    this.shieldMesh = null;
 
+    let modelData;
     if (heroKey === 'reinhardt') {
-      this.buildReinhardtModel();
+      modelData = buildReinhardtModel(this.modelGroup);
+      this.shieldMesh = modelData.shieldMesh;
     } else if (heroKey === 'genji') {
-      this.buildGenjiModel();
+      modelData = buildGenjiModel(this.modelGroup);
     } else {
-      this.buildTracerModel();
+      modelData = buildTracerModel(this.modelGroup);
     }
 
-    // Register all hit meshes for raycasting
+    this.bodyMesh = modelData.bodyMesh;
+    this.headMesh = modelData.headMesh;
+    this.hitMeshes = modelData.hitMeshes ? [...modelData.hitMeshes] : [];
+
+    // Assign critical headshot & body metadata
+    if (this.headMesh) {
+      this.headMesh.userData = { player: this, isHead: true, playerId: this.id };
+    }
+    if (this.bodyMesh) {
+      this.bodyMesh.userData = { player: this, isHead: false, playerId: this.id };
+    }
+    if (this.shieldMesh) {
+      this.shieldMesh.userData = { player: this, isShield: true, playerId: this.id };
+      if (!this.hitMeshes.includes(this.shieldMesh)) {
+        this.hitMeshes.push(this.shieldMesh);
+      }
+    }
+
+    // Register all hit meshes for raycasting & hit flash
     this.hitMeshes.forEach((mesh) => {
+      if (!mesh.userData.player) {
+        mesh.userData = { player: this, isHead: false, playerId: this.id };
+      }
       this.origMaterials.set(mesh, mesh.material);
     });
-  }
 
-  // 1. TRACER (Slim, orange chronal harness, glowing chest core, pulse pistols)
-  buildTracerModel() {
-    const suitMat = new THREE.MeshStandardMaterial({ color: 0xeb780a, roughness: 0.35, metalness: 0.4 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.5, metalness: 0.5 });
-    const glowMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-    const visorMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-
-    // Torso
-    const torsoGeo = new THREE.CylinderGeometry(0.28, 0.22, 0.85, 10);
-    this.bodyMesh = new THREE.Mesh(torsoGeo, suitMat);
-    this.bodyMesh.position.y = 1.05;
-    this.bodyMesh.castShadow = true;
-    this.bodyMesh.userData = { player: this, isHead: false, playerId: this.id };
-    this.modelGroup.add(this.bodyMesh);
-    this.hitMeshes.push(this.bodyMesh);
-
-    // Chronal Accelerator (Chest Core)
-    const coreGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 8);
-    coreGeo.rotateX(Math.PI / 2);
-    const coreMesh = new THREE.Mesh(coreGeo, glowMat);
-    coreMesh.position.set(0, 0.15, 0.22);
-    this.bodyMesh.add(coreMesh);
-
-    // Legs
-    const legGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.75, 8);
-    const legL = new THREE.Mesh(legGeo, darkMat);
-    legL.position.set(-0.16, 0.38, 0);
-    const legR = new THREE.Mesh(legGeo, darkMat);
-    legR.position.set(0.16, 0.38, 0);
-    this.modelGroup.add(legL, legR);
-
-    // Head (CRITICAL HIT NODE)
-    const headGeo = new THREE.SphereGeometry(0.22, 12, 12);
-    this.headMesh = new THREE.Mesh(headGeo, darkMat);
-    this.headMesh.position.set(0, 1.62, 0);
-    this.headMesh.castShadow = true;
-    this.headMesh.userData = { player: this, isHead: true, playerId: this.id };
-    this.modelGroup.add(this.headMesh);
-    this.hitMeshes.push(this.headMesh);
-
-    // Amber Visor
-    const visorGeo = new THREE.BoxGeometry(0.24, 0.08, 0.12);
-    const visorMesh = new THREE.Mesh(visorGeo, visorMat);
-    visorMesh.position.set(0, 0.02, 0.18);
-    this.headMesh.add(visorMesh);
-
-    // Dual Pulse Pistols
-    const gunGeo = new THREE.BoxGeometry(0.08, 0.12, 0.32);
-    const gunL = new THREE.Mesh(gunGeo, darkMat);
-    gunL.position.set(-0.35, 1.05, 0.25);
-    const gunR = new THREE.Mesh(gunGeo, darkMat);
-    gunR.position.set(0.35, 1.05, 0.25);
-    this.modelGroup.add(gunL, gunR);
-  }
-
-  // 2. GENJI (Cyborg ninja, sleek silver armor, neon green glow, katana on back)
-  buildGenjiModel() {
-    const armorMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.25, metalness: 0.85 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.6 });
-    const greenGlow = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
-
-    // Torso
-    const torsoGeo = new THREE.CylinderGeometry(0.32, 0.25, 0.9, 10);
-    this.bodyMesh = new THREE.Mesh(torsoGeo, armorMat);
-    this.bodyMesh.position.y = 1.1;
-    this.bodyMesh.castShadow = true;
-    this.bodyMesh.userData = { player: this, isHead: false, playerId: this.id };
-    this.modelGroup.add(this.bodyMesh);
-    this.hitMeshes.push(this.bodyMesh);
-
-    // Green chest vents
-    const ventGeo = new THREE.BoxGeometry(0.18, 0.04, 0.05);
-    const ventMesh = new THREE.Mesh(ventGeo, greenGlow);
-    ventMesh.position.set(0, 0.18, 0.26);
-    this.bodyMesh.add(ventMesh);
-
-    // Legs
-    const legGeo = new THREE.CylinderGeometry(0.11, 0.08, 0.8, 8);
-    const legL = new THREE.Mesh(legGeo, darkMat);
-    legL.position.set(-0.18, 0.4, 0);
-    const legR = new THREE.Mesh(legGeo, darkMat);
-    legR.position.set(0.18, 0.4, 0);
-    this.modelGroup.add(legL, legR);
-
-    // Head (CRITICAL HIT NODE)
-    const headGeo = new THREE.SphereGeometry(0.23, 12, 12);
-    this.headMesh = new THREE.Mesh(headGeo, armorMat);
-    this.headMesh.position.set(0, 1.7, 0);
-    this.headMesh.castShadow = true;
-    this.headMesh.userData = { player: this, isHead: true, playerId: this.id };
-    this.modelGroup.add(this.headMesh);
-    this.hitMeshes.push(this.headMesh);
-
-    // Cyber Visor (Neon Green Slit)
-    const visorGeo = new THREE.BoxGeometry(0.24, 0.05, 0.12);
-    const visorMesh = new THREE.Mesh(visorGeo, greenGlow);
-    visorMesh.position.set(0, 0.02, 0.19);
-    this.headMesh.add(visorMesh);
-
-    // Katana Scabbard on Back
-    const swordGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.1, 6);
-    const swordMesh = new THREE.Mesh(swordGeo, greenGlow);
-    swordMesh.rotation.z = Math.PI / 4;
-    swordMesh.position.set(-0.1, 1.25, -0.25);
-    this.modelGroup.add(swordMesh);
-  }
-
-  // 3. REINHARDT (Massive crusader knight, rocket hammer, barrier shield)
-  buildReinhardtModel() {
-    const steelMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.3, metalness: 0.85 });
-    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.35, metalness: 0.7 });
-    const lionCore = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-
-    // Massive Torso
-    const torsoGeo = new THREE.BoxGeometry(1.0, 1.2, 0.75);
-    this.bodyMesh = new THREE.Mesh(torsoGeo, steelMat);
-    this.bodyMesh.position.y = 1.35;
-    this.bodyMesh.castShadow = true;
-    this.bodyMesh.userData = { player: this, isHead: false, playerId: this.id };
-    this.modelGroup.add(this.bodyMesh);
-    this.hitMeshes.push(this.bodyMesh);
-
-    // Huge Pauldrons (Shoulders)
-    const shoulderGeo = new THREE.SphereGeometry(0.38, 8, 8);
-    const pL = new THREE.Mesh(shoulderGeo, brassMat);
-    pL.position.set(-0.72, 0.45, 0);
-    const pR = new THREE.Mesh(shoulderGeo, brassMat);
-    pR.position.set(0.72, 0.45, 0);
-    this.bodyMesh.add(pL, pR);
-
-    // Chest Lion Crest
-    const crestGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.08, 6);
-    crestGeo.rotateX(Math.PI / 2);
-    const crest = new THREE.Mesh(crestGeo, lionCore);
-    crest.position.set(0, 0.2, 0.4);
-    this.bodyMesh.add(crest);
-
-    // Armor Legs
-    const legGeo = new THREE.CylinderGeometry(0.22, 0.18, 0.85, 8);
-    const legL = new THREE.Mesh(legGeo, steelMat);
-    legL.position.set(-0.35, 0.42, 0);
-    const legR = new THREE.Mesh(legGeo, steelMat);
-    legR.position.set(0.35, 0.42, 0);
-    this.modelGroup.add(legL, legR);
-
-    // Crusader Helmet Head (CRITICAL HIT NODE)
-    const headGeo = new THREE.BoxGeometry(0.42, 0.45, 0.42);
-    this.headMesh = new THREE.Mesh(headGeo, brassMat);
-    this.headMesh.position.set(0, 2.15, 0);
-    this.headMesh.castShadow = true;
-    this.headMesh.userData = { player: this, isHead: true, playerId: this.id };
-    this.modelGroup.add(this.headMesh);
-    this.hitMeshes.push(this.headMesh);
-
-    // Visor eye slit
-    const eyeGeo = new THREE.BoxGeometry(0.28, 0.06, 0.1);
-    const eyeMesh = new THREE.Mesh(eyeGeo, lionCore);
-    eyeMesh.position.set(0, 0.05, 0.22);
-    this.headMesh.add(eyeMesh);
-
-    // Rocket Hammer (held on back or side)
-    const hammerGroup = new THREE.Group();
-    hammerGroup.position.set(0.65, 1.2, 0.3);
-    hammerGroup.rotation.x = Math.PI / 6;
-
-    const shaftGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.8, 8);
-    const shaftMesh = new THREE.Mesh(shaftGeo, steelMat);
-    shaftMesh.position.y = 0.5;
-
-    const headHammerGeo = new THREE.BoxGeometry(0.35, 0.55, 0.65);
-    const headHammerMesh = new THREE.Mesh(headHammerGeo, brassMat);
-    headHammerMesh.position.set(0, 1.3, 0);
-
-    hammerGroup.add(shaftMesh, headHammerMesh);
-    this.modelGroup.add(hammerGroup);
-
-    // Deployable Barrier Shield (Translucent cyan hexagonal energy field)
-    const shieldGeo = new THREE.PlaneGeometry(3.6, 2.4);
-    const shieldMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
-      transparent: true,
-      opacity: 0.45,
-      side: THREE.DoubleSide
-    });
-    this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
-    this.shieldMesh.position.set(0, 1.4, 1.2);
-    this.shieldMesh.visible = false;
-    this.shieldMesh.userData = { player: this, isShield: true, playerId: this.id };
-    this.modelGroup.add(this.shieldMesh);
-    this.hitMeshes.push(this.shieldMesh);
+    if (this.billboardMesh) {
+      this.billboardMesh.position.y = (heroKey === 'reinhardt') ? 2.85 : (heroKey === 'genji' ? 2.25 : 2.1);
+    }
   }
 
   // ==========================================================================
@@ -368,6 +197,11 @@ export class RemotePlayer {
 
     // Flash white on hit
     this.flashTimer = 0.08;
+    this.hitMeshes.forEach((mesh) => {
+      if (mesh !== this.shieldMesh) {
+        mesh.material = this.flashMaterial;
+      }
+    });
 
     // Squash & Stretch deformation
     if (isHeadshot) {
@@ -394,7 +228,7 @@ export class RemotePlayer {
     this.hp = maxHp;
     this.trailingHp = maxHp;
     this.buildModel(newHeroKey);
-    this.billboardMesh.position.y = (newHeroKey === 'reinhardt') ? 2.85 : 2.3;
+    this.billboardMesh.position.y = (newHeroKey === 'reinhardt') ? 2.85 : (newHeroKey === 'genji' ? 2.25 : 2.1);
     this.updateHUDCanvas();
   }
 
@@ -443,7 +277,7 @@ export class RemotePlayer {
 
     // 3. Head Pitch
     if (this.headMesh) {
-      this.headMesh.rotation.x = this.targetPitch;
+      this.headMesh.rotation.x = -this.targetPitch;
     }
 
     // 4. Trailing Health Bar Lerp (skill.md 3.4)
