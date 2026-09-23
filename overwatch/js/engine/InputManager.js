@@ -45,6 +45,13 @@ export class InputManager {
     this.initDesktopEvents();
     if (this.isTouchDevice) {
       this.initMobileControls();
+    } else {
+      const onFirstTouch = () => {
+        this.isTouchDevice = true;
+        this.initMobileControls();
+        window.removeEventListener('touchstart', onFirstTouch);
+      };
+      window.addEventListener('touchstart', onFirstTouch, { once: true });
     }
   }
 
@@ -135,15 +142,20 @@ export class InputManager {
   }
 
   // ==========================================================================
-  // MOBILE TOUCH CONTROLS (Virtual Joystick + Aim Drag + Buttons)
+  // MOBILE TOUCH CONTROLS (Dynamic Floating Joystick + Universal Button Drag Aim)
   // ==========================================================================
   initMobileControls() {
+    if (this._mobileControlsInitialized) return;
+    this._mobileControlsInitialized = true;
+
     const mobileContainer = document.getElementById('mobile-controls');
     if (mobileContainer) {
       mobileContainer.classList.remove('hidden');
     }
 
-    // 1. Virtual Joystick (Left Thumb Movement)
+    // ------------------------------------------------------------------------
+    // 1. DYNAMIC FLOATING VIRTUAL JOYSTICK (Left Half of Screen: 0% to 50% width)
+    // ------------------------------------------------------------------------
     const joyZone = document.getElementById('joystick-zone');
     const joyBase = document.getElementById('joystick-base');
     const joyKnob = document.getElementById('joystick-knob');
@@ -151,194 +163,238 @@ export class InputManager {
     let joyTouchId = null;
     let baseCenterX = 0;
     let baseCenterY = 0;
-    const maxRadius = 45; // Max knob drag distance in px
+    let maxRadius = 45; // Dynamic knob drag limit
 
     if (joyZone && joyBase && joyKnob) {
       joyZone.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        // Ignore if a joystick touch is already active
+        if (joyTouchId !== null) return;
+
         const touch = e.changedTouches[0];
         joyTouchId = touch.identifier;
 
+        // Position the floating joystick base exactly at touch point
+        baseCenterX = touch.clientX;
+        baseCenterY = touch.clientY;
+
+        joyBase.style.left = `${baseCenterX}px`;
+        joyBase.style.top = `${baseCenterY}px`;
+        joyBase.classList.add('active');
+        joyKnob.style.transform = 'translate(0px, 0px)';
+        this.touchMove = { x: 0, z: 0 };
+
+        // Scale max drag distance proportionally to base diameter
         const rect = joyBase.getBoundingClientRect();
-        baseCenterX = rect.left + rect.width / 2;
-        baseCenterY = rect.top + rect.height / 2;
+        const baseRadius = (rect.width || 120) / 2;
+        maxRadius = Math.max(36, Math.min(54, baseRadius * 0.75));
 
-        this.updateJoystick(touch.clientX, touch.clientY, baseCenterX, baseCenterY, maxRadius, joyKnob);
-      }, { passive: false });
-
-      joyZone.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          const touch = e.changedTouches[i];
-          if (touch.identifier === joyTouchId) {
-            this.updateJoystick(touch.clientX, touch.clientY, baseCenterX, baseCenterY, maxRadius, joyKnob);
-            break;
-          }
+        if ('vibrate' in navigator) {
+          try { navigator.vibrate(8); } catch (_) {}
         }
       }, { passive: false });
 
-      const endJoystick = (e) => {
+      // Window-level touchmove ensures steering remains fluid even if thumb slides
+      const handleJoyMove = (e) => {
+        if (joyTouchId === null) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          if (touch.identifier === joyTouchId) {
+            e.preventDefault();
+            let dx = touch.clientX - baseCenterX;
+            let dy = touch.clientY - baseCenterY;
+            const dist = Math.hypot(dx, dy);
+
+            let knobX = dx;
+            let knobY = dy;
+            if (dist > maxRadius) {
+              knobX = (dx / dist) * maxRadius;
+              knobY = (dy / dist) * maxRadius;
+            }
+
+            joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+            this.touchMove = {
+              x: knobX / maxRadius,
+              z: knobY / maxRadius
+            };
+            break;
+          }
+        }
+      };
+      window.addEventListener('touchmove', handleJoyMove, { passive: false });
+
+      const handleJoyEnd = (e) => {
+        if (joyTouchId === null) return;
         for (let i = 0; i < e.changedTouches.length; i++) {
           if (e.changedTouches[i].identifier === joyTouchId) {
             joyTouchId = null;
             this.touchMove = { x: 0, z: 0 };
             joyKnob.style.transform = 'translate(0px, 0px)';
+            joyBase.classList.remove('active');
             break;
           }
         }
       };
-
-      joyZone.addEventListener('touchend', endJoystick);
-      joyZone.addEventListener('touchcancel', endJoystick);
+      window.addEventListener('touchend', handleJoyEnd, { passive: false });
+      window.addEventListener('touchcancel', handleJoyEnd, { passive: false });
     }
 
-    // 2. Touch Aim Drag Zone (Right Screen Drag for Camera Rotation)
-    const lookZone = document.getElementById('touch-look-zone');
-    let lookTouchId = null;
-    let lastLookX = 0;
-    let lastLookY = 0;
+    // ------------------------------------------------------------------------
+    // 2. UNIVERSAL DRAG-TO-AIM (Right Half: Look Zone + ALL Action Buttons)
+    // ------------------------------------------------------------------------
+    // Map of active touch points for look/aim: touchId -> { lastX, lastY, btnId, onRelease }
+    const activeLookTouches = new Map();
 
+    const applyLookDelta = (dx, dy) => {
+      this.yaw -= dx * this.touchLookSensitivity;
+      this.pitch -= dy * this.touchLookSensitivity;
+
+      // Clamp vertical pitch to -83deg ~ +83deg (-1.45 rad ~ +1.45 rad)
+      const maxPitch = 1.45;
+      this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch));
+    };
+
+    // A. Empty Right Half Look Drag Zone
+    const lookZone = document.getElementById('touch-look-zone');
     if (lookZone) {
       lookZone.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        const touch = e.changedTouches[0];
-        lookTouchId = touch.identifier;
-        lastLookX = touch.clientX;
-        lastLookY = touch.clientY;
-      }, { passive: false });
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          if (touch.identifier === joyTouchId) continue;
 
-      lookZone.addEventListener('touchmove', (e) => {
+          activeLookTouches.set(touch.identifier, {
+            lastX: touch.clientX,
+            lastY: touch.clientY,
+            btnId: null,
+            onRelease: null
+          });
+        }
+      }, { passive: false });
+    }
+
+    // B. Action Buttons Configuration (All allow simultaneous drag-to-aim while pressed)
+    const actionButtonsConfig = [
+      {
+        id: 'btn-touch-fire',
+        vibrate: 10,
+        onPress: () => { this.keys.primaryFire = true; },
+        onRelease: () => { this.keys.primaryFire = false; }
+      },
+      {
+        id: 'btn-touch-alt',
+        vibrate: 10,
+        onPress: () => { this.keys.secondaryFire = true; },
+        onRelease: () => { this.keys.secondaryFire = false; }
+      },
+      {
+        id: 'btn-touch-jump',
+        vibrate: 12,
+        onPress: () => { this.keys.jump = true; },
+        onRelease: () => { this.keys.jump = false; }
+      },
+      {
+        id: 'btn-touch-shift',
+        vibrate: 20,
+        onPress: () => { this.keys.shift = true; },
+        onRelease: null
+      },
+      {
+        id: 'btn-touch-e',
+        vibrate: 20,
+        onPress: () => { this.keys.e = true; },
+        onRelease: null
+      },
+      {
+        id: 'btn-touch-q',
+        vibrate: [25, 40, 25],
+        onPress: () => { this.keys.q = true; },
+        onRelease: null
+      },
+      {
+        id: 'btn-touch-reload',
+        vibrate: 15,
+        onPress: () => { this.keys.r = true; },
+        onRelease: null
+      }
+    ];
+
+    actionButtonsConfig.forEach((cfg) => {
+      const btn = document.getElementById(cfg.id);
+      if (!btn) return;
+
+      btn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
-          if (touch.identifier === lookTouchId) {
-            const dx = touch.clientX - lastLookX;
-            const dy = touch.clientY - lastLookY;
-            lastLookX = touch.clientX;
-            lastLookY = touch.clientY;
+          if (touch.identifier === joyTouchId) continue;
 
-            this.yaw -= dx * this.touchLookSensitivity;
-            this.pitch -= dy * this.touchLookSensitivity;
+          activeLookTouches.set(touch.identifier, {
+            lastX: touch.clientX,
+            lastY: touch.clientY,
+            btnId: cfg.id,
+            onRelease: cfg.onRelease
+          });
 
-            // Clamp vertical pitch to -83deg ~ +83deg
-            const maxPitch = 1.45;
-            this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch));
-            break;
+          btn.classList.add('active');
+          if (cfg.onPress) cfg.onPress();
+
+          if ('vibrate' in navigator && cfg.vibrate) {
+            try { navigator.vibrate(cfg.vibrate); } catch (_) {}
           }
         }
       }, { passive: false });
+    });
 
-      const endLook = (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === lookTouchId) {
-            lookTouchId = null;
-            break;
-          }
+    // Window-level touchmove for camera look/aim across all touches
+    const handleLookMove = (e) => {
+      if (activeLookTouches.size === 0) return;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (activeLookTouches.has(touch.identifier)) {
+          e.preventDefault();
+          const item = activeLookTouches.get(touch.identifier);
+          const dx = touch.clientX - item.lastX;
+          const dy = touch.clientY - item.lastY;
+
+          item.lastX = touch.clientX;
+          item.lastY = touch.clientY;
+
+          applyLookDelta(dx, dy);
         }
-      };
+      }
+    };
+    window.addEventListener('touchmove', handleLookMove, { passive: false });
 
-      lookZone.addEventListener('touchend', endLook);
-      lookZone.addEventListener('touchcancel', endLook);
-    }
+    // Window-level touchend / touchcancel cleans up button states and look tracking
+    const handleLookEnd = (e) => {
+      if (activeLookTouches.size === 0) return;
 
-    // 3. Mobile Touch Action Buttons
-    // Integrated Primary Fire + Aim Drag: Pressing Fire triggers shooting AND dragging thumb rotates camera!
-    const btnFire = document.getElementById('btn-touch-fire');
-    let fireTouchId = null;
-    let lastFireX = 0;
-    let lastFireY = 0;
-
-    if (btnFire) {
-      btnFire.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.changedTouches[0];
-        fireTouchId = touch.identifier;
-        lastFireX = touch.clientX;
-        lastFireY = touch.clientY;
-        this.keys.primaryFire = true;
-        btnFire.classList.add('active');
-        if ('vibrate' in navigator) navigator.vibrate(10);
-      }, { passive: false });
-
-      btnFire.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          const touch = e.changedTouches[i];
-          if (touch.identifier === fireTouchId) {
-            const dx = touch.clientX - lastFireX;
-            const dy = touch.clientY - lastFireY;
-            lastFireX = touch.clientX;
-            lastFireY = touch.clientY;
-
-            this.yaw -= dx * this.touchLookSensitivity;
-            this.pitch -= dy * this.touchLookSensitivity;
-
-            // Clamp vertical pitch to -83deg ~ +83deg
-            const maxPitch = 1.45;
-            this.pitch = Math.max(-maxPitch, Math.min(maxPitch, this.pitch));
-            break;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (activeLookTouches.has(touch.identifier)) {
+          const item = activeLookTouches.get(touch.identifier);
+          if (item.btnId) {
+            const btn = document.getElementById(item.btnId);
+            if (btn) btn.classList.remove('active');
+            if (item.onRelease) item.onRelease();
           }
+          activeLookTouches.delete(touch.identifier);
         }
-      }, { passive: false });
-
-      const endFire = (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === fireTouchId) {
-            fireTouchId = null;
-            this.keys.primaryFire = false;
-            btnFire.classList.remove('active');
-            break;
-          }
-        }
-      };
-
-      btnFire.addEventListener('touchend', endFire);
-      btnFire.addEventListener('touchcancel', endFire);
-    }
-
-    // Secondary Fire / Alt (Shield / Fan of Shurikens)
-    this.bindTouchButton('btn-touch-alt', (active) => {
-      this.keys.secondaryFire = active;
-      if (active && 'vibrate' in navigator) navigator.vibrate(10);
-    });
-
-    this.bindTouchButton('btn-touch-jump', (active) => {
-      this.keys.jump = active;
-      if (active && 'vibrate' in navigator) navigator.vibrate(12);
-    });
-
-    this.bindTouchButton('btn-touch-shift', (active) => {
-      if (active) {
-        this.keys.shift = true;
-        if ('vibrate' in navigator) navigator.vibrate(20);
       }
-    });
+    };
+    window.addEventListener('touchend', handleLookEnd, { passive: false });
+    window.addEventListener('touchcancel', handleLookEnd, { passive: false });
 
-    this.bindTouchButton('btn-touch-e', (active) => {
-      if (active) {
-        this.keys.e = true;
-        if ('vibrate' in navigator) navigator.vibrate(20);
-      }
-    });
-
-    this.bindTouchButton('btn-touch-q', (active) => {
-      if (active) {
-        this.keys.q = true;
-        if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
-      }
-    });
-
-    this.bindTouchButton('btn-touch-reload', (active) => {
-      if (active) {
-        this.keys.r = true;
-        if ('vibrate' in navigator) navigator.vibrate(15);
-      }
-    });
-
+    // ------------------------------------------------------------------------
+    // 3. TOP BAR UTILITY BUTTONS (HERO SWITCH & SCOREBOARD)
+    // ------------------------------------------------------------------------
     const btnSwitch = document.getElementById('btn-touch-switch');
     if (btnSwitch) {
       btnSwitch.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (this.onHeroSwitchRequested) {
           this.onHeroSwitchRequested('toggle_modal');
           if ('vibrate' in navigator) navigator.vibrate(15);
@@ -350,6 +406,7 @@ export class InputManager {
     if (btnScoreboard) {
       btnScoreboard.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         this.keys.tab = !this.keys.tab;
         if ('vibrate' in navigator) navigator.vibrate(15);
       }, { passive: false });
@@ -366,7 +423,7 @@ export class InputManager {
       dy = (dy / dist) * maxRadius;
     }
 
-    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    if (knob) knob.style.transform = `translate(${dx}px, ${dy}px)`;
     this.touchMove = {
       x: dx / maxRadius,
       z: dy / maxRadius

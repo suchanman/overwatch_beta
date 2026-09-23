@@ -1335,52 +1335,98 @@ html, body {
   overflow: hidden;
 }
 
-/* Left: Virtual Joystick */
+/* ==========================================================================
+   MOBILE CONTROLS: 50/50 SPLIT SCREEN LAYOUT
+   - Left 50%: Dynamic Floating Joystick (spawns under thumb anywhere on left)
+   - Right 50%: Universal Aim / Drag Zone + Multi-touch Action Buttons
+   ========================================================================== */
+
+/* Left Half: Dynamic Floating Virtual Joystick Zone */
 .joystick-zone {
   position: absolute;
-  bottom: max(12px, env(safe-area-inset-bottom, 12px));
-  left: max(14px, env(safe-area-inset-left, 14px));
-  width: clamp(100px, 20vmin, 145px);
-  height: clamp(100px, 20vmin, 145px);
+  top: 0;
+  left: 0;
+  width: 50vw;
+  width: 50dvw;
+  height: 100vh;
+  height: 100dvh;
   pointer-events: auto;
   touch-action: none;
-  z-index: 25;
+  z-index: 10;
+  overflow: hidden;
 }
 
 .joystick-base {
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 17, 22, 0.65);
-  border: 2px solid rgba(0, 240, 255, 0.45);
+  position: absolute;
+  width: clamp(100px, 20vmin, 140px);
+  height: clamp(100px, 20vmin, 140px);
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.88) 100%);
+  border: 2px solid rgba(0, 240, 255, 0.6);
   border-radius: 50%;
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.35), inset 0 0 16px rgba(0, 240, 255, 0.2);
+  transform: translate(-50%, -50%) scale(0.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity, left, top;
 }
 
-.joystick-knob {
-  width: clamp(36px, 7.5vmin, 48px);
-  height: clamp(36px, 7.5vmin, 48px);
-  background: radial-gradient(circle, #00f0ff 0%, #0099ff 100%);
-  border-radius: 50%;
+.joystick-base.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.joystick-base::before {
+  content: '';
   position: absolute;
-  box-shadow: 0 0 14px #00f0ff;
-  transform: translate(0, 0);
+  width: 60%;
+  height: 60%;
+  border: 1px dashed rgba(0, 240, 255, 0.35);
+  border-radius: 50%;
   pointer-events: none;
 }
 
-/* Center-Right: Touch Look & Aim Drag Zone */
+.joystick-base::after {
+  content: '';
+  position: absolute;
+  width: 86%;
+  height: 86%;
+  border-top: 2px solid rgba(0, 240, 255, 0.45);
+  border-bottom: 2px solid rgba(0, 240, 255, 0.45);
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.joystick-knob {
+  width: clamp(38px, 7.5vmin, 50px);
+  height: clamp(38px, 7.5vmin, 50px);
+  background: radial-gradient(circle at 35% 35%, #5eead4 0%, #00f0ff 45%, #0284c7 100%);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.85), 0 2px 8px rgba(0, 0, 0, 0.6);
+  transform: translate(0, 0);
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Right Half: Touch Aim Drag Zone */
 .touch-look-zone {
   position: absolute;
   top: 0;
   right: 0;
-  width: 65%;
-  height: 100%;
+  width: 50vw;
+  width: 50dvw;
+  height: 100vh;
+  height: 100dvh;
   pointer-events: auto;
   touch-action: none;
-  z-index: 1;
+  z-index: 10;
 }
 
 /* Top-Right: Mobile Hero Switch & Scoreboard Buttons */
@@ -1535,8 +1581,9 @@ html, body {
 
 .touch-btn:active, .touch-btn.active {
   transform: scale(0.92);
-  background: rgba(240, 100, 20, 0.5);
+  background: rgba(240, 100, 20, 0.6);
   border-color: var(--ow-orange);
+  box-shadow: 0 0 18px var(--ow-orange-glow);
 }
 
 /* Primary Fire + Drag-to-Aim Button (Large Thumb Home Anchor) */
@@ -1551,6 +1598,12 @@ html, body {
   box-shadow: 0 0 20px var(--ow-orange-glow);
   z-index: 5;
 }
+.btn-fire:active, .btn-fire.active {
+  transform: scale(0.93);
+  background: linear-gradient(135deg, #ff3700 0%, #ff8c00 100%);
+  border-color: #ffffff;
+  box-shadow: 0 0 25px rgba(255, 100, 0, 0.95);
+}
 .btn-fire .btn-icon { font-size: clamp(20px, 4vmin, 26px); }
 .btn-fire .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 900; letter-spacing: 0.5px; }
 
@@ -1564,6 +1617,12 @@ html, body {
   border-color: rgba(0, 240, 255, 0.6);
   background: rgba(14, 116, 144, 0.85);
 }
+.btn-jump:active, .btn-jump.active {
+  transform: scale(0.92);
+  background: rgba(6, 182, 212, 0.9);
+  border-color: #00f0ff;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
+}
 .btn-jump .btn-icon { font-size: clamp(12px, 2.4vmin, 15px); }
 .btn-jump .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 800; }
 
@@ -1575,6 +1634,12 @@ html, body {
   bottom: 44%;
   right: 32%;
   border-color: rgba(245, 158, 11, 0.6);
+}
+.btn-shift:active, .btn-shift.active {
+  transform: scale(0.92);
+  background: rgba(245, 158, 11, 0.9);
+  border-color: #fbbf24;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
 }
 .btn-shift .btn-icon { font-size: clamp(14px, 2.8vmin, 18px); }
 .btn-shift .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 800; }
@@ -1588,6 +1653,12 @@ html, body {
   right: 40%;
   border-color: rgba(168, 85, 247, 0.6);
 }
+.btn-e:active, .btn-e.active {
+  transform: scale(0.92);
+  background: rgba(168, 85, 247, 0.9);
+  border-color: #c084fc;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
+}
 .btn-e .btn-icon { font-size: clamp(14px, 2.8vmin, 18px); }
 .btn-e .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 800; }
 
@@ -1599,6 +1670,12 @@ html, body {
   bottom: 28%;
   right: 58%;
   border-color: rgba(56, 189, 248, 0.6);
+}
+.btn-alt:active, .btn-alt.active {
+  transform: scale(0.92);
+  background: rgba(56, 189, 248, 0.9);
+  border-color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
 }
 .btn-alt .btn-icon { font-size: clamp(13px, 2.5vmin, 16px); }
 .btn-alt .btn-lbl { font-size: clamp(7px, 1.3vmin, 8.5px); font-weight: 800; }
@@ -1614,6 +1691,12 @@ html, body {
   border-color: var(--ow-ult-cyan);
   box-shadow: 0 0 18px var(--ow-ult-glow);
 }
+.btn-ult:active, .btn-ult.active {
+  transform: scale(0.94);
+  background: radial-gradient(circle, #ffb800 0%, #ff6b00 100%);
+  border-color: #ffffff;
+  box-shadow: 0 0 28px rgba(255, 184, 0, 0.95);
+}
 .btn-ult .btn-icon { font-size: clamp(16px, 3.2vmin, 20px); color: #ffb800; }
 .btn-ult .btn-lbl { font-size: clamp(7.5px, 1.4vmin, 9px); font-weight: 900; color: #00f0ff; }
 
@@ -1625,6 +1708,12 @@ html, body {
   bottom: 6%;
   right: 68%;
   border-color: rgba(255, 255, 255, 0.3);
+}
+.btn-reload:active, .btn-reload.active {
+  transform: scale(0.92);
+  background: rgba(100, 116, 139, 0.9);
+  border-color: #ffffff;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
 }
 .btn-reload .btn-icon { font-size: clamp(12px, 2.4vmin, 15px); }
 .btn-reload .btn-lbl { font-size: clamp(7px, 1.3vmin, 8px); font-weight: 800; }
@@ -1638,13 +1727,14 @@ html, body {
     display: none !important;
   }
 
-  /* Reposition Player HP compactly above the virtual joystick */
+  /* Compact Player HP docked cleanly at bottom left with pass-through touch */
   .bottom-left-hud {
     position: absolute;
-    bottom: calc(max(12px, env(safe-area-inset-bottom, 12px)) + clamp(100px, 20vmin, 145px) + 8px);
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
     left: max(14px, env(safe-area-inset-left, 14px));
-    transform: skewX(-10deg) scale(0.9);
+    transform: skewX(-10deg) scale(0.85);
     transform-origin: bottom left;
+    pointer-events: none;
   }
 
   /* Ammo display on mobile is docked cleanly above the fire button cluster */
