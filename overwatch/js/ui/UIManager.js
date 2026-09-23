@@ -19,13 +19,16 @@ export class UIManager {
     this.hitmarkerEl = document.getElementById('hitmarker');
     this.skullMarkerEl = document.getElementById('skull-marker');
     this.hitmarkerTimeout = null;
+    this.hitDirectionEl = document.getElementById('hit-direction-indicator');
+    this.hitDirectionTimeout = null;
+    this.damageTimeout = null;
 
     // Elimination Banner
     this.elimBannerEl = document.getElementById('elimination-banner');
     this.elimVictimEl = document.getElementById('elim-victim-name');
     this.elimBannerTimeout = null;
 
-    // Killfeed
+    // Killfeed (Top-Left)
     this.killfeedContainer = document.getElementById('killfeed-container');
 
     // Hero Status & Health
@@ -118,40 +121,91 @@ export class UIManager {
   }
 
   // ==========================================================================
-  // REAL-TIME SLIDING KILLFEED
+  // REAL-TIME SLIDING KILLFEED (Top-Left Anchored)
   // ==========================================================================
-  addKillfeed(killerName, victimName, isHeadshot = false, weaponIcon = '⚔️') {
-    const item = document.createElement('div');
-    item.className = 'killfeed-item';
+  getHeroWeaponIcon(heroOrType) {
+    if (!heroOrType) return '⚔️';
+    const key = String(heroOrType).toLowerCase();
+    if (key.includes('tracer') || key.includes('pistol')) return '🔫';
+    if (key.includes('genji') || key.includes('blade') || key.includes('shuriken')) return '🗡️';
+    if (key.includes('reinhardt') || key.includes('hammer')) return '🔨';
+    if (key.includes('firestrike')) return '🔥';
+    if (key.includes('earthshatter')) return '⚡';
+    if (key.includes('pulse_bomb') || key.includes('bomb')) return '💣';
+    if (key.includes('dash') || key.includes('charge')) return '💨';
+    return heroOrType.length <= 3 ? heroOrType : '⚔️';
+  }
 
-    const headshotSpan = isHeadshot ? '<span class="killfeed-headshot">🎯</span>' : '';
+  addKillfeed(killerName, victimName, isHeadshot = false, weaponSource = '⚔️', isLocalVictim = false, isLocalKiller = false) {
+    if (!this.killfeedContainer) return;
+
+    // Keep max 5 items visible on screen so it never overflows
+    while (this.killfeedContainer.children.length >= 5) {
+      this.killfeedContainer.removeChild(this.killfeedContainer.children[0]);
+    }
+
+    const item = document.createElement('div');
+    item.className = `killfeed-item${isLocalVictim ? ' local-victim' : ''}${isLocalKiller ? ' local-killer' : ''}`;
+
+    const weaponIcon = this.getHeroWeaponIcon(weaponSource);
+    const headshotSpan = isHeadshot ? '<span class="killfeed-headshot" title="헤드샷!">🎯</span>' : '';
     item.innerHTML = `
-      <span class="killfeed-killer">${killerName}</span>
+      <span class="killfeed-killer ${isLocalKiller ? 'self' : 'friendly'}">${killerName}</span>
       ${headshotSpan}
       <span class="killfeed-icon">${weaponIcon}</span>
-      <span class="killfeed-victim">${victimName}</span>
+      <span class="killfeed-victim ${isLocalVictim ? 'self' : 'enemy'}">${victimName}</span>
     `;
 
     this.killfeedContainer.appendChild(item);
 
-    // Remove after 3.8 seconds
+    // Remove after 4.2 seconds with smooth fade
     setTimeout(() => {
-      if (item.parentNode) {
-        item.parentNode.removeChild(item);
+      item.classList.add('fade-out');
+      setTimeout(() => {
+        if (item.parentNode) {
+          item.parentNode.removeChild(item);
+        }
+      }, 350);
+    }, 4200);
+  }
+
+  // ==========================================================================
+  // SCREEN DAMAGE FEEDBACK (Directional Threat Arc & Perimeter Red Pulse)
+  // ==========================================================================
+  triggerHitDirection(angleRad = 0) {
+    if (!this.hitDirectionEl) return;
+    clearTimeout(this.hitDirectionTimeout);
+
+    // Rotate directional chevron to point at incoming attacker
+    const deg = (angleRad * 180 / Math.PI);
+    this.hitDirectionEl.style.transform = `translate(-50%, -50%) rotate(${deg}deg)`;
+    this.hitDirectionEl.classList.remove('active');
+    void this.hitDirectionEl.offsetWidth; // Reflow for instant punchy restart
+    this.hitDirectionEl.classList.add('active');
+
+    this.hitDirectionTimeout = setTimeout(() => {
+      if (this.hitDirectionEl) {
+        this.hitDirectionEl.classList.remove('active');
       }
-    }, 3800);
+    }, 700);
   }
 
-  // ==========================================================================
-  // SCREEN DAMAGE & EFFECT OVERLAYS
-  // ==========================================================================
-  triggerDamageVignette() {
-    this.damageVignette.classList.add('active');
-    setTimeout(() => this.damageVignette.classList.remove('active'), 250);
-  }
+  triggerDamageFlash(hitAngle = null) {
+    if (this.damageVignette) {
+      this.damageVignette.classList.remove('active');
+      void this.damageVignette.offsetWidth;
+      this.damageVignette.classList.add('active');
+      clearTimeout(this.damageTimeout);
+      this.damageTimeout = setTimeout(() => {
+        if (this.damageVignette) {
+          this.damageVignette.classList.remove('active');
+        }
+      }, 340);
+    }
 
-  triggerDamageFlash() {
-    this.triggerDamageVignette();
+    if (hitAngle !== null && hitAngle !== undefined) {
+      this.triggerHitDirection(hitAngle);
+    }
   }
 
   triggerRecallWarp() {
@@ -195,6 +249,15 @@ export class UIManager {
 
     this.healthBarFill.style.width = `${hpPct}%`;
     this.healthBarTrail.style.width = `${trailPct}%`;
+
+    // Low Health Warning Screen Edge Glow (< 30% HP)
+    if (this.damageVignette) {
+      if (hero.hp > 0 && hpPct <= 30) {
+        this.damageVignette.classList.add('low-hp');
+      } else {
+        this.damageVignette.classList.remove('low-hp');
+      }
+    }
 
     // 3. Radial Ultimate Meter
     const ultProgress = Math.min(100, hero.ultCharge);

@@ -47,11 +47,16 @@
       </div>
     </div>
 
-    <!-- Top Right: Real-time Killfeed -->
+    <!-- Top Left: Real-time Killfeed -->
     <div id="killfeed-container" class="killfeed-container"></div>
 
     <!-- Center Reticle & Dynamic Hitmarkers -->
     <div id="crosshair-wrapper" class="crosshair-wrapper">
+      <!-- Directional Threat Hit-Arc (Flashes toward incoming damage direction, 100% unobtrusive) -->
+      <div id="hit-direction-indicator" class="hit-direction-indicator">
+        <div class="hit-threat-arc"></div>
+      </div>
+
       <div id="crosshair" class="crosshair crosshair-tracer">
         <div class="cross-dot"></div>
         <div class="cross-line top"></div>
@@ -83,95 +88,98 @@
       </div>
     </div>
 
-    <!-- Bottom Left: Hero Identity, Health/Armor/Shield & Trailing Bar -->
-    <div class="bottom-left-hud">
-      <div class="hero-portrait-frame">
-        <div id="hero-portrait" class="hero-portrait portrait-tracer"></div>
-        <div class="hero-level-tag">★ 99</div>
-      </div>
-
-      <div class="hero-status-group">
-        <div class="hero-header-row">
-          <span id="hero-name-label" class="hero-name">TRACER</span>
-          <span class="hero-role-badge">DAMAGE</span>
+    <!-- Bottom HUD Bar: Left (Health/Hero), Center (Ultimate), Right (Abilities/Ammo) -->
+    <div class="hud-bottom-row">
+      <!-- Bottom Left: Hero Identity, Health/Armor/Shield & Trailing Bar -->
+      <div class="bottom-left-hud">
+        <div class="hero-portrait-frame">
+          <div id="hero-portrait" class="hero-portrait portrait-tracer"></div>
+          <div class="hero-level-tag">★ 99</div>
         </div>
 
-        <div class="hp-numeric-row">
-          <span id="hp-current" class="hp-num">300</span>
-          <span class="hp-divider">/</span>
-          <span id="hp-max" class="hp-max-num">300</span>
-        </div>
-
-        <!-- Segmented Health Bar with Lagging Trailing Bar -->
-        <div class="health-bar-container">
-          <div id="health-bar-trail" class="health-bar-trail"></div>
-          <div id="health-bar-fill" class="health-bar-fill"></div>
-          <div class="health-segments-overlay" id="health-segments"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Center: Ultimate Meter (0% ~ 100%) -->
-    <div class="bottom-center-hud">
-      <div id="ult-meter-wrapper" class="ult-meter-wrapper">
-        <svg class="ult-svg-ring" viewBox="0 0 120 120">
-          <circle class="ult-ring-bg" cx="60" cy="60" r="48" />
-          <circle id="ult-ring-progress" class="ult-ring-progress" cx="60" cy="60" r="48" />
-        </svg>
-
-        <div class="ult-inner-circle">
-          <div class="ult-wings left" id="ult-wing-l"></div>
-          <div class="ult-wings right" id="ult-wing-r"></div>
-          
-          <div class="ult-content-box">
-            <span id="ult-percent-label" class="ult-percent">0%</span>
-            <span id="ult-key-label" class="ult-key">Q</span>
+        <div class="hero-status-group">
+          <div class="hero-header-row">
+            <span id="hero-name-label" class="hero-name">TRACER</span>
+            <span class="hero-role-badge">DAMAGE</span>
           </div>
-        </div>
 
-        <div id="ult-ready-tag" class="ult-ready-tag hidden">READY</div>
-      </div>
-    </div>
-
-    <!-- Bottom Right: Abilities, Weapon Ammo, Magazine Circle -->
-    <div class="bottom-right-hud">
-      <div class="abilities-group">
-        <!-- Ability 1: Shift -->
-        <div class="ability-slot" id="slot-ability-1">
-          <div class="ability-keybind">L.SHIFT</div>
-          <div class="ability-icon-box" id="ability-1-icon">
-            <span class="icon-text">⚡</span>
-            <div id="ability-1-cooldown-overlay" class="ability-cooldown-overlay"></div>
-            <span id="ability-1-timer" class="ability-timer-text"></span>
+          <div class="hp-numeric-row">
+            <span id="hp-current" class="hp-num">300</span>
+            <span class="hp-divider">/</span>
+            <span id="hp-max" class="hp-max-num">300</span>
           </div>
-          <!-- Tracer Multiple Charges Pips -->
-          <div id="blink-charges" class="blink-charges-row">
-            <span class="blink-pip active"></span>
-            <span class="blink-pip active"></span>
-            <span class="blink-pip active"></span>
-          </div>
-        </div>
 
-        <!-- Ability 2: E -->
-        <div class="ability-slot" id="slot-ability-2">
-          <div class="ability-keybind">E</div>
-          <div class="ability-icon-box" id="ability-2-icon">
-            <span class="icon-text">⏪</span>
-            <div id="ability-2-cooldown-overlay" class="ability-cooldown-overlay"></div>
-            <span id="ability-2-timer" class="ability-timer-text"></span>
+          <!-- Segmented Health Bar with Lagging Trailing Bar -->
+          <div class="health-bar-container">
+            <div id="health-bar-trail" class="health-bar-trail"></div>
+            <div id="health-bar-fill" class="health-bar-fill"></div>
+            <div class="health-segments-overlay" id="health-segments"></div>
           </div>
         </div>
       </div>
 
-      <!-- Weapon & Ammo Display -->
-      <div class="ammo-group">
-        <div class="ammo-numbers">
-          <span id="ammo-current" class="ammo-current">40</span>
-          <span class="ammo-slash">/</span>
-          <span id="ammo-max" class="ammo-max">40</span>
+      <!-- Bottom Center: Ultimate Meter (0% ~ 100%) -->
+      <div class="bottom-center-hud">
+        <div id="ult-meter-wrapper" class="ult-meter-wrapper">
+          <svg class="ult-svg-ring" viewBox="0 0 120 120">
+            <circle class="ult-ring-bg" cx="60" cy="60" r="48" />
+            <circle id="ult-ring-progress" class="ult-ring-progress" cx="60" cy="60" r="48" />
+          </svg>
+
+          <div class="ult-inner-circle">
+            <div class="ult-wings left" id="ult-wing-l"></div>
+            <div class="ult-wings right" id="ult-wing-r"></div>
+            
+            <div class="ult-content-box">
+              <span id="ult-percent-label" class="ult-percent">0%</span>
+              <span id="ult-key-label" class="ult-key">Q</span>
+            </div>
+          </div>
+
+          <div id="ult-ready-tag" class="ult-ready-tag hidden">READY</div>
         </div>
-        <div id="ammo-pips-bar" class="ammo-pips-bar"></div>
-        <div id="reload-prompt" class="reload-prompt hidden">[R] RELOAD</div>
+      </div>
+
+      <!-- Bottom Right: Abilities, Weapon Ammo, Magazine Circle -->
+      <div class="bottom-right-hud">
+        <div class="abilities-group">
+          <!-- Ability 1: Shift -->
+          <div class="ability-slot" id="slot-ability-1">
+            <div class="ability-keybind">L.SHIFT</div>
+            <div class="ability-icon-box" id="ability-1-icon">
+              <span class="icon-text">⚡</span>
+              <div id="ability-1-cooldown-overlay" class="ability-cooldown-overlay"></div>
+              <span id="ability-1-timer" class="ability-timer-text"></span>
+            </div>
+            <!-- Tracer Multiple Charges Pips -->
+            <div id="blink-charges" class="blink-charges-row">
+              <span class="blink-pip active"></span>
+              <span class="blink-pip active"></span>
+              <span class="blink-pip active"></span>
+            </div>
+          </div>
+
+          <!-- Ability 2: E -->
+          <div class="ability-slot" id="slot-ability-2">
+            <div class="ability-keybind">E</div>
+            <div class="ability-icon-box" id="ability-2-icon">
+              <span class="icon-text">⏪</span>
+              <div id="ability-2-cooldown-overlay" class="ability-cooldown-overlay"></div>
+              <span id="ability-2-timer" class="ability-timer-text"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weapon & Ammo Display -->
+        <div class="ammo-group">
+          <div class="ammo-numbers">
+            <span id="ammo-current" class="ammo-current">40</span>
+            <span class="ammo-slash">/</span>
+            <span id="ammo-max" class="ammo-max">40</span>
+          </div>
+          <div id="ammo-pips-bar" class="ammo-pips-bar"></div>
+          <div id="reload-prompt" class="reload-prompt hidden">[R] RELOAD</div>
+        </div>
       </div>
     </div>
 

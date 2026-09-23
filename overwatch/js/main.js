@@ -107,6 +107,15 @@ class OverwatchGame {
     this.initScoreboardModal();
     this.initStartOverlay();
     window.addEventListener('resize', () => this.onWindowResize());
+    window.addEventListener('orientationchange', () => setTimeout(() => this.onWindowResize(), 150));
+
+    // Prevent accidental mobile page drag/scroll/rubber-banding outside scrollable modals
+    document.addEventListener('touchmove', (e) => {
+      const scrollable = e.target.closest && e.target.closest('.start-overlay, .hero-switch-modal, .scoreboard-overlay, .scoreboard-window');
+      if (!scrollable) {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     // 9. Start Game Loop
     this.lastTime = performance.now();
@@ -329,7 +338,24 @@ class OverwatchGame {
         }
         this.audio.playDamage();
         this.shaker.addTrauma(isHeadshot ? 0.35 : 0.18);
-        this.ui.triggerDamageFlash();
+
+        // Calculate incoming threat direction relative to player's look yaw
+        let hitAngle = null;
+        const attacker = this.remotePlayers.get(attackerId);
+        if (attacker && attacker.group) {
+          const dx = attacker.group.position.x - this.playerPos.x;
+          const dz = attacker.group.position.z - this.playerPos.z;
+          const worldAngle = Math.atan2(dx, -dz);
+          hitAngle = worldAngle - this.input.yaw;
+        }
+
+        // Mobile Haptic feedback on damage
+        if (this.isTouchDevice && 'vibrate' in navigator) {
+          navigator.vibrate(isHeadshot ? [30, 40, 30] : 25);
+        }
+
+        // Trigger Directional Threat Arc + Perimeter Red Edge Pulse (Never blocks center view!)
+        this.ui.triggerDamageFlash(hitAngle);
 
         if (this.currentHero.hp <= 0 && !this.isRespawning) {
           this.handleLocalPlayerDeath(attackerName);
@@ -352,6 +378,14 @@ class OverwatchGame {
     };
 
     this.network.onPlayerEliminated = (victimId, victimName, attackerId, attackerName, attackerHero, isHeadshot) => {
+      const isLocalKiller = (attackerId === this.network.selfId);
+      const isLocalVictim = (victimId === this.network.selfId);
+      const killerDisplay = isLocalKiller ? (this.playerNickname || '나') : (attackerName || '적 요원');
+      const victimDisplay = isLocalVictim ? (this.playerNickname || '나') : (victimName || '요원');
+
+      // Top-Left Sliding Killfeed for ALL Eliminations
+      this.ui.addKillfeed(killerDisplay, victimDisplay, isHeadshot, attackerHero ? attackerHero.toUpperCase() : '⚡', isLocalVictim, isLocalKiller);
+
       if (victimId === this.network.selfId) {
         this.currentHero.hp = 0;
         this.currentHero.trailingHp = 0;
@@ -362,9 +396,7 @@ class OverwatchGame {
         this.localElims++;
         const elimCountEl = document.getElementById('elim-count');
         if (elimCountEl) elimCountEl.textContent = this.localElims;
-        this.handleCombatHit({ name: victimName }, 100, isHeadshot, true);
-      } else {
-        this.ui.addKillfeed(attackerName, victimName, isHeadshot, '⚡');
+        this.handleCombatHit({ name: victimName }, 100, isHeadshot, true, false);
       }
 
       const rp = this.remotePlayers.get(victimId);
@@ -406,7 +438,7 @@ class OverwatchGame {
     };
   }
 
-  handleLocalPlayerDeath(killerName) {
+  handleLocalPlayerDeath(killerName, skipKillfeed = false) {
     if (this.isRespawning) return;
     this.isRespawning = true;
     this.respawnTimer = 5.0;
@@ -424,6 +456,11 @@ class OverwatchGame {
     // Hide weapon viewmodel so corpse/hands vanish!
     if (this.currentHero && this.currentHero.weaponGroup) {
       this.currentHero.weaponGroup.visible = false;
+    }
+
+    // Top-Left Sliding Killfeed for local death (if not already logged by elimination event)
+    if (!skipKillfeed) {
+      this.ui.addKillfeed(killerName || '전장 위험 요소', this.playerNickname || '나', false, '💀', true, false);
     }
 
     const respawnOverlay = document.getElementById('respawn-overlay');
@@ -793,7 +830,7 @@ class OverwatchGame {
   // ==========================================================================
   // HIT & COMBAT EVENT HANDLER (skill.md 6-Stage Interaction Pipeline)
   // ==========================================================================
-  handleCombatHit(target, damageDealt, isHeadshot, isFinalBlow) {
+  handleCombatHit(target, damageDealt, isHeadshot, isFinalBlow, shouldAddKillfeed = true) {
     // 1. Audio Sync: Headshot DINK vs Body Tick (skill.md 13)
     this.audio.playHit(isHeadshot);
 
@@ -823,9 +860,11 @@ class OverwatchGame {
     if (isFinalBlow) {
       this.audio.playElimination();
 
-      // Flame Elimination Banner & Killfeed
+      // Flame Elimination Banner & Top-Left Killfeed
       this.ui.showEliminationBanner(target.name);
-      this.ui.addKillfeed(this.currentHero.name, target.name, isHeadshot, '⚡');
+      if (shouldAddKillfeed) {
+        this.ui.addKillfeed(this.playerNickname || this.currentHero.name, target.name, isHeadshot, this.currentHero.name, false, true);
+      }
 
       // Hero Passive Notification (e.g. Genji Swift Strike Reset!)
       if (this.currentHero.onEnemyEliminated) {
@@ -1249,7 +1288,15 @@ class OverwatchGame {
   }
 }
 
-// Instantiate Game on DOM ready
-window.addEventListener('DOMContentLoaded', () => {
-  new OverwatchGame();
-});
+// Reliable Instant & DOMReady Game Boot
+function startOverwatchApp() {
+  if (!window.__overwatchGame) {
+    window.__overwatchGame = new OverwatchGame();
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', startOverwatchApp);
+} else {
+  startOverwatchApp();
+}
