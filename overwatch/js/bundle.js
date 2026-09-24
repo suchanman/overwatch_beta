@@ -2690,7 +2690,17 @@ function buildReinhardtModel(parentGroup) {
     bodyMesh: chest,
     headMesh: helmet,
     shieldMesh,
-    hitMeshes
+    hitMeshes,
+    animNodes: {
+      root: reinhardtRoot,
+      torso: torsoGroup,
+      head: headGroup,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg: leftLegGroup,
+      rightLeg: rightLegGroup,
+      weapon: hammerGroup
+    }
   };
 }
 
@@ -2862,7 +2872,16 @@ function buildTracerModel(parentGroup) {
     rootGroup: tracerRoot,
     bodyMesh: chest,
     headMesh: head,
-    hitMeshes
+    hitMeshes,
+    animNodes: {
+      root: tracerRoot,
+      torso: torsoGroup,
+      head: head,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg: leftLegGroup,
+      rightLeg: rightLegGroup
+    }
   };
 }
 
@@ -3144,18 +3163,152 @@ function buildGenjiModel(parentGroup) {
     rootGroup: genjiRoot,
     bodyMesh: chestCore,
     headMesh: dome,
-    hitMeshes
+    hitMeshes,
+    animNodes: {
+      root: genjiRoot,
+      torso: chestGroup,
+      head: dome,
+      leftArm,
+      rightArm,
+      leftLeg,
+      rightLeg
+    }
   };
+}
+
+// ============================================================================
+// DYNAMIC PROCEDURAL WALKING & IDLE ANIMATION ENGINE
+// - Reinhardt: Heavy armored footfalls, mass-shifting hammer sway & torso tilt
+// - Genji: Agile cybernetic ninja stride, aerodynamic forward lean & arm swing
+// - Tracer: Ultra-fast springy cadence, twin pulse pistol pump & energetic bounce
+// ============================================================================
+function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
+  if (!animNodes) return;
+
+  const lerpFactor = Math.min(1.0, dt * 14.0);
+
+  if (heroKey === 'reinhardt') {
+    const freq = 6.0; // Heavy, deliberate stride
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Heavy crusader legs stride
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = sinVal * 0.48;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -sinVal * 0.48;
+
+      // Heavy left arm swing & hammer lag
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -sinVal * 0.32;
+      if (animNodes.weapon) animNodes.weapon.rotation.x = (Math.PI / 8) + sinVal * 0.18;
+
+      // Side-to-side weight transfer & step thud
+      if (animNodes.root) {
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.045, lerpFactor);
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 1.35 - Math.abs(cosVal) * 0.05, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.06, lerpFactor);
+      }
+    } else {
+      // Idle recovery & subtle breathing
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, 0, lerpFactor);
+      if (animNodes.weapon) animNodes.weapon.rotation.x = THREE.MathUtils.lerp(animNodes.weapon.rotation.x, Math.PI / 8, lerpFactor);
+      if (animNodes.root) {
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 1.35 + Math.sin(walkTime * 2.0) * 0.015, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+    }
+  } else if (heroKey === 'genji') {
+    const freq = 9.2; // Quick, controlled ninja stride
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Ninja aerodynamic stride
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = -0.02 + sinVal * 0.60;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -0.02 - sinVal * 0.60;
+
+      // Cybernetic arms counter-swing
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = 0.10 - sinVal * 0.44;
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = 0.10 + sinVal * 0.44;
+
+      // Agile forward lean & footstep bounce
+      if (animNodes.torso) {
+        animNodes.torso.rotation.x = THREE.MathUtils.lerp(animNodes.torso.rotation.x, 0.14 + Math.abs(cosVal) * 0.04, lerpFactor);
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.08, lerpFactor);
+      }
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, -0.045 + Math.abs(sinVal) * 0.04, lerpFactor);
+      }
+    } else {
+      // Ninja poised idle
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, -0.02, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, -0.02, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, 0.10, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, 0.10, lerpFactor);
+      if (animNodes.torso) {
+        animNodes.torso.rotation.x = THREE.MathUtils.lerp(animNodes.torso.rotation.x, Math.sin(walkTime * 2.5) * 0.02, lerpFactor);
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, -0.045, lerpFactor);
+      }
+    }
+  } else {
+    // Tracer
+    const freq = 11.5; // High cadence rapid sprint
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Energetic high mobility stride
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = sinVal * 0.70;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -sinVal * 0.70;
+
+      // Dual pistol arm pump
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -sinVal * 0.50;
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = sinVal * 0.50;
+
+      // Cheerful bounce & hip sway
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 0.08 + Math.abs(cosVal) * 0.06, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.045, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.10, lerpFactor);
+      }
+    } else {
+      // Lively Tracer idle breathing
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, 0, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, 0, lerpFactor);
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 0.08 + Math.sin(walkTime * 3.2) * 0.015, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+    }
+  }
 }
 
 // ==================== js/entities/Projectile.js ====================
 /**
  * ============================================================================
  * PROJECTILE & HITSCAN TRAIL MANAGER
- * - Genji Shurikens (Fast aerodynamic spinning stars with cyan trail)
- * - Reinhardt Fire Strike (Giant piercing crescent flame wave)
- * - Tracer Pulse Bomb (Sticky physics bomb with 1.5s countdown ring & huge shockwave)
- * - Tracer Hitscan Bullet Beams (Instant laser tracers)
+ * - Genji Shurikens (Fast aerodynamic spinning cybernetic stars with green laser trail)
+ * - Reinhardt Fire Strike (Giant piercing vertical crescent flame wave with fire tail)
+ * - Tracer Pulse Bomb (Chronal sticky physics bomb with expanding countdown ring & shockwave)
+ * - Bot / Enemy Plasma Bolts (Vibrant red energy bolt with tracer tail)
+ * - Tracer Hitscan Bullet Beams (Instant cyan laser tracers)
+ * - Impact Spark Particles & Volumetric Motion Streaks
  * ============================================================================
  */
 class ProjectileManager {
@@ -3164,6 +3317,8 @@ class ProjectileManager {
     this.projectiles = [];
     this.bulletBeams = [];
     this.motionStreaks = [];
+    this.particles = [];
+    this.onProjectileSpawned = null; // Replicate projectiles across multiplayer network
   }
 
   // 1. Hitscan Tracer Beam (Tracer Dual Pulse Pistols)
@@ -3173,13 +3328,13 @@ class ProjectileManager {
     const mat = new THREE.LineBasicMaterial({
       color: color,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       linewidth: 2
     });
 
     const line = new THREE.Line(geo, mat);
     this.scene.add(line);
-    this.bulletBeams.push({ line, life: 0.08, maxLife: 0.08 });
+    this.bulletBeams.push({ line, life: 0.09, maxLife: 0.09 });
   }
 
   // 1.5 3D Volumetric Motion Streak (Tracer Blink, Genji Swift Strike, Reinhardt Charge)
@@ -3226,12 +3381,50 @@ class ProjectileManager {
     });
   }
 
-  // 2. Genji Shuriken
-  spawnShuriken(origin, direction, hero) {
+  // 1.6 Impact Spark Particles (Overwatch High-Energy Impact Feedback)
+  spawnHitSparks(pos, normal, color = 0x00f0ff, count = 8) {
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const velocities = [];
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = pos.x;
+      positions[i * 3 + 1] = pos.y;
+      positions[i * 3 + 2] = pos.z;
+
+      const norm = normal || new THREE.Vector3(0, 1, 0);
+      const v = norm.clone().multiplyScalar(3.5 + Math.random() * 4.5);
+      v.x += (Math.random() - 0.5) * 4.0;
+      v.y += (Math.random() - 0.5) * 4.0;
+      v.z += (Math.random() - 0.5) * 4.0;
+      velocities.push(v);
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: color,
+      size: 0.16,
+      transparent: true,
+      opacity: 1.0
+    });
+    const points = new THREE.Points(geo, mat);
+    this.scene.add(points);
+    this.particles.push({
+      mesh: points,
+      geo,
+      mat,
+      positions,
+      velocities,
+      life: 0.28,
+      maxLife: 0.28
+    });
+  }
+
+  // 2. Genji Shuriken (High-Visibility Cybernetic Star with Luminous Green Laser Tail)
+  spawnShuriken(origin, direction, hero, isRemote = false) {
     const starGroup = new THREE.Group();
 
     // High-visibility glowing 6-point cybernetic shuriken
-    const starGeo = new THREE.CylinderGeometry(0.20, 0.20, 0.03, 3);
+    const starGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.035, 3);
     const starMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
     const mesh1 = new THREE.Mesh(starGeo, starMat);
     starGroup.add(mesh1);
@@ -3241,10 +3434,22 @@ class ProjectileManager {
     starGroup.add(mesh2);
 
     // Glowing energy core for visual clarity
-    const coreGeo = new THREE.SphereGeometry(0.08, 8, 8);
+    const coreGeo = new THREE.SphereGeometry(0.09, 8, 8);
     const coreMat = new THREE.MeshBasicMaterial({ color: 0x6ee7b7 });
     const core = new THREE.Mesh(coreGeo, coreMat);
     starGroup.add(core);
+
+    // Glowing Aerodynamic Laser Trail (Vibrant green streak clearly visible from any perspective)
+    const trailGeo = new THREE.CylinderGeometry(0.015, 0.08, 1.6, 6);
+    trailGeo.translate(0, -0.8, 0);
+    trailGeo.rotateX(Math.PI / 2);
+    const trailMat = new THREE.MeshBasicMaterial({
+      color: 0x34d399,
+      transparent: true,
+      opacity: 0.8
+    });
+    const trail = new THREE.Mesh(trailGeo, trailMat);
+    starGroup.add(trail);
 
     starGroup.position.copy(origin);
     starGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
@@ -3257,75 +3462,193 @@ class ProjectileManager {
       life: 2.5,
       damage: 27,
       hero,
+      isRemote: !!isRemote,
       lastPos: origin.clone()
     });
+
+    if (!isRemote && this.onProjectileSpawned) {
+      this.onProjectileSpawned('shuriken', {
+        origin: [origin.x, origin.y, origin.z],
+        dir: [direction.x, direction.y, direction.z]
+      });
+    }
   }
 
-  // 3. Reinhardt Fire Strike
-  spawnFireStrike(origin, direction, hero) {
-    const waveGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.2, 16, 1, false, 0, Math.PI);
+  // 3. Reinhardt Fire Strike (Giant Piercing Vertical Flame Crescent with Fiery Tail)
+  spawnFireStrike(origin, direction, hero, isRemote = false) {
+    const waveGroup = new THREE.Group();
+
+    // 1. Giant blazing vertical crescent wave (2.8m wide x 2.2m tall)
+    const arcShape = new THREE.Shape();
+    arcShape.absarc(0, 0, 1.5, -Math.PI * 0.45, Math.PI * 0.45, false);
+    arcShape.absarc(0, 0, 1.1, Math.PI * 0.45, -Math.PI * 0.45, true);
+    const arcGeo = new THREE.ShapeGeometry(arcShape, 24);
     const waveMat = new THREE.MeshBasicMaterial({
-      color: 0xff4500,
+      color: 0xff3700,
       side: THREE.DoubleSide
     });
-    const mesh = new THREE.Mesh(waveGeo, waveMat);
-    mesh.position.copy(origin);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+    const crescentMesh = new THREE.Mesh(arcGeo, waveMat);
+    crescentMesh.rotation.y = Math.PI / 2;
+    waveGroup.add(crescentMesh);
 
-    this.scene.add(mesh);
+    // 2. Blazing fiery inner core (white/gold hot)
+    const coreShape = new THREE.Shape();
+    coreShape.absarc(0, 0, 1.3, -Math.PI * 0.35, Math.PI * 0.35, false);
+    coreShape.absarc(0, 0, 1.05, Math.PI * 0.35, -Math.PI * 0.35, true);
+    const coreGeo = new THREE.ShapeGeometry(coreShape, 16);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      side: THREE.DoubleSide
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.rotation.y = Math.PI / 2;
+    waveGroup.add(coreMesh);
+
+    // 3. Central fiery ignition sphere
+    const sphereGeo = new THREE.SphereGeometry(0.35, 12, 12);
+    sphereGeo.scale(0.5, 1.8, 1.0);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffedd5 });
+    const centerSphere = new THREE.Mesh(sphereGeo, sphereMat);
+    waveGroup.add(centerSphere);
+
+    // 4. Trailing fiery flame tail (Tapered orange flame trail extending 2.2m backward)
+    const trailGeo = new THREE.ConeGeometry(1.2, 2.5, 12);
+    trailGeo.rotateX(-Math.PI / 2);
+    trailGeo.translate(0, 0, -1.25);
+    const trailMat = new THREE.MeshBasicMaterial({
+      color: 0xea580c,
+      transparent: true,
+      opacity: 0.65,
+      side: THREE.DoubleSide
+    });
+    const trailMesh = new THREE.Mesh(trailGeo, trailMat);
+    waveGroup.add(trailMesh);
+
+    waveGroup.position.copy(origin);
+    waveGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+
+    this.scene.add(waveGroup);
     this.projectiles.push({
       type: 'firestrike',
-      mesh,
+      mesh: waveGroup,
       velocity: direction.clone().multiplyScalar(24),
-      life: 3.0,
+      life: 3.2,
       damage: 100,
       hitBots: new Set(), // Pierces multiple enemies!
       hero,
+      isRemote: !!isRemote,
       lastPos: origin.clone()
     });
+
+    if (!isRemote && this.onProjectileSpawned) {
+      this.onProjectileSpawned('fire_strike', {
+        origin: [origin.x, origin.y, origin.z],
+        dir: [direction.x, direction.y, direction.z]
+      });
+    }
   }
 
-  // 4. Tracer Pulse Bomb
-  spawnPulseBomb(origin, direction, hero) {
-    const bombGeo = new THREE.SphereGeometry(0.22, 12, 12);
-    const bombMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-    const mesh = new THREE.Mesh(bombGeo, bombMat);
-    mesh.position.copy(origin);
+  // 4. Tracer Pulse Bomb (Chronal Sticky Device with Expanding Hologram Countdown Ring)
+  spawnPulseBomb(origin, direction, hero, isRemote = false) {
+    const bombGroup = new THREE.Group();
 
-    this.scene.add(mesh);
+    // Chronal core cylinder with glowing cyan reactor band
+    const cylGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.28, 16);
+    cylGeo.rotateX(Math.PI / 2);
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+    const cylMesh = new THREE.Mesh(cylGeo, bodyMat);
+    bombGroup.add(cylMesh);
+
+    const coreGeo = new THREE.SphereGeometry(0.14, 12, 12);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    bombGroup.add(coreMesh);
+
+    // Blinking hazard ring & cap
+    const capGeo = new THREE.CylinderGeometry(0.20, 0.20, 0.05, 16);
+    capGeo.rotateX(Math.PI / 2);
+    const capMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+    const capMesh = new THREE.Mesh(capGeo, capMat);
+    bombGroup.add(capMesh);
+
+    // Ticking countdown hologram ring (expands when stuck)
+    const ringGeo = new THREE.RingGeometry(0.3, 0.38, 24);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.visible = false;
+    bombGroup.add(ringMesh);
+
+    bombGroup.position.copy(origin);
+
+    this.scene.add(bombGroup);
     this.projectiles.push({
       type: 'pulsebomb',
-      mesh,
-      velocity: direction.clone().multiplyScalar(20),
-      gravity: -15,
+      mesh: bombGroup,
+      coreMesh,
+      ringMesh,
+      velocity: direction.clone().multiplyScalar(22),
+      gravity: -16,
       isStuck: false,
       stuckTarget: null,
       countdown: 1.5,
       damage: 350,
-      hero
+      hero,
+      isRemote: !!isRemote
     });
+
+    if (!isRemote && this.onProjectileSpawned) {
+      this.onProjectileSpawned('pulse_bomb', {
+        origin: [origin.x, origin.y, origin.z],
+        dir: [direction.x, direction.y, direction.z]
+      });
+    }
   }
 
-  // 5. Training Bot / Enemy Plasma Bolt (For testing shield blocking and deflect)
+  // 5. Training Bot / Enemy Plasma Bolt (Vibrant Red Energy Bolt with Tracer Tail)
   spawnEnemyBolt(origin, direction, speed = 25, damage = 25) {
-    const geo = new THREE.SphereGeometry(0.18, 8, 8);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.copy(origin);
+    const boltGroup = new THREE.Group();
 
-    const haloGeo = new THREE.SphereGeometry(0.30, 8, 8);
+    // Central glowing red/crimson plasma core
+    const geo = new THREE.SphereGeometry(0.20, 10, 10);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+    const coreMesh = new THREE.Mesh(geo, mat);
+    boltGroup.add(coreMesh);
+
+    // Outer plasma aura
+    const haloGeo = new THREE.SphereGeometry(0.32, 10, 10);
     const haloMat = new THREE.MeshBasicMaterial({
-      color: 0xff5577,
+      color: 0xff4466,
       transparent: true,
       opacity: 0.55
     });
     const halo = new THREE.Mesh(haloGeo, haloMat);
-    mesh.add(halo);
+    boltGroup.add(halo);
 
-    this.scene.add(mesh);
+    // Elongated tracer tail (clearly visible flying across the air)
+    const tailGeo = new THREE.CylinderGeometry(0.02, 0.16, 1.4, 8);
+    tailGeo.translate(0, -0.7, 0);
+    tailGeo.rotateX(Math.PI / 2);
+    const tailMat = new THREE.MeshBasicMaterial({
+      color: 0xff1144,
+      transparent: true,
+      opacity: 0.75
+    });
+    const tail = new THREE.Mesh(tailGeo, tailMat);
+    boltGroup.add(tail);
+
+    boltGroup.position.copy(origin);
+    boltGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+
+    this.scene.add(boltGroup);
     this.projectiles.push({
       type: 'enemy_bolt',
-      mesh,
+      mesh: boltGroup,
       velocity: direction.clone().multiplyScalar(speed),
       life: 3.5,
       damage,
@@ -3334,15 +3657,18 @@ class ProjectileManager {
     });
   }
 
+  // ==========================================================================
+  // TICK UPDATE LOOP (Motion Streaks, Particles, Swept Collision & Replication)
+  // ==========================================================================
   update(dt, bots, onHitCallback, map = null, playerContext = null) {
-    // 0. Update Motion Streaks (Fade & Thinning)
+    // 0. Update Motion Streaks (Fade & Radial Thinning)
     for (let i = this.motionStreaks.length - 1; i >= 0; i--) {
       const s = this.motionStreaks[i];
       s.life -= dt;
       const progress = Math.max(0, s.life / s.maxLife);
       s.coreMat.opacity = progress * 0.95;
       s.sheathMat.opacity = progress * 0.85;
-      s.group.scale.set(progress, progress, 1.0); // Thins out radially as it fades!
+      s.group.scale.set(progress, progress, 1.0);
       if (s.life <= 0) {
         this.scene.remove(s.group);
         s.group.traverse((obj) => {
@@ -3350,6 +3676,29 @@ class ProjectileManager {
           if (obj.material) obj.material.dispose();
         });
         this.motionStreaks.splice(i, 1);
+      }
+    }
+
+    // 0.5 Update Spark Particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const pt = this.particles[i];
+      pt.life -= dt;
+      const progress = Math.max(0, pt.life / pt.maxLife);
+      pt.mat.opacity = progress;
+      const posAttr = pt.geo.attributes.position;
+      const arr = posAttr.array;
+      for (let j = 0; j < pt.velocities.length; j++) {
+        pt.velocities[j].y -= 10 * dt; // Gravity
+        arr[j * 3] += pt.velocities[j].x * dt;
+        arr[j * 3 + 1] += pt.velocities[j].y * dt;
+        arr[j * 3 + 2] += pt.velocities[j].z * dt;
+      }
+      posAttr.needsUpdate = true;
+      if (pt.life <= 0) {
+        this.scene.remove(pt.mesh);
+        pt.geo.dispose();
+        pt.mat.dispose();
+        this.particles.splice(i, 1);
       }
     }
 
@@ -3370,53 +3719,93 @@ class ProjectileManager {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
 
+      // --- SHURIKEN ---
       if (p.type === 'shuriken') {
         p.life -= dt;
         const prevPos = p.lastPos ? p.lastPos.clone() : p.mesh.position.clone();
         p.mesh.position.addScaledVector(p.velocity, dt);
         p.lastPos = p.mesh.position.clone();
-        p.mesh.rotation.z += 28 * dt; // Rapid aerodynamic spin
+        p.mesh.rotation.z += 30 * dt; // Aerodynamic rapid spin
 
         let hit = false;
 
-        // Wall & Obstacle Collision Check
+        // Map collision
         if (map && typeof map.checkProjectileHit === 'function') {
-          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.15);
+          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.18);
           if (wallHit.hit) {
             hit = true;
+            this.spawnHitSparks(wallHit.point || prevPos, new THREE.Vector3(0, 1, 0), 0x10b981, 6);
           }
         }
 
         if (!hit) {
-          // Continuous Swept Collision Detection (CCD) against Bot / Player Vertical Cylinders
-          const dx = p.mesh.position.x - prevPos.x;
-          const dz = p.mesh.position.z - prevPos.z;
-          const horizLenSq = dx * dx + dz * dz;
+          if (p.isRemote) {
+            // Remote shuriken flying toward or past local player
+            if (playerContext && playerContext.playerPos && playerContext.currentHero) {
+              const pPos = playerContext.playerPos;
+              const pHero = playerContext.currentHero;
+              const pCam = playerContext.camera;
+              const dist = p.mesh.position.distanceTo(pPos);
 
-          for (const bot of bots) {
-            if (bot.isDead) continue;
-            const botPos = bot.group.position;
+              if (dist < 1.7) {
+                // Genji Deflect against incoming remote shuriken
+                if (pHero.name === 'GENJI' && pHero.isDeflecting) {
+                  p.isRemote = false; // Deflected shuriken now belongs to local player!
+                  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
+                  p.velocity.copy(forward).multiplyScalar(48);
+                  p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), forward);
+                  if (playerContext.audio) playerContext.audio.playGenjiDeflect();
+                  if (playerContext.shaker) playerContext.shaker.addTrauma(0.12);
+                  continue;
+                }
 
-            let t = 0;
-            if (horizLenSq > 0.00001) {
-              const vx = botPos.x - prevPos.x;
-              const vz = botPos.z - prevPos.z;
-              t = Math.max(0, Math.min(1, (vx * dx + vz * dz) / horizLenSq));
+                // Reinhardt Shield block
+                if (pHero.name === 'REINHARDT' && pHero.isShieldActive) {
+                  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
+                  forward.y = 0;
+                  forward.normalize();
+                  const toProj = p.mesh.position.clone().sub(pPos).normalize();
+                  if (forward.dot(toProj) > 0.1) {
+                    pHero.takeShieldDamage(p.damage);
+                    this.spawnHitSparks(p.mesh.position, toProj.negate(), 0x38bdf8, 8);
+                    if (playerContext.audio) playerContext.audio.playHit(false);
+                    if (playerContext.shaker) playerContext.shaker.addTrauma(0.06);
+                    hit = true;
+                  }
+                }
+              }
             }
+          } else {
+            // Local player shuriken: Continuous Swept Collision Detection (CCD) against targets
+            const dx = p.mesh.position.x - prevPos.x;
+            const dz = p.mesh.position.z - prevPos.z;
+            const horizLenSq = dx * dx + dz * dz;
 
-            const closestX = prevPos.x + dx * t;
-            const closestZ = prevPos.z + dz * t;
-            const closestY = prevPos.y + (p.mesh.position.y - prevPos.y) * t;
+            for (const bot of bots) {
+              if (bot.isDead) continue;
+              const botPos = bot.group.position;
 
-            const horizDist = Math.hypot(closestX - botPos.x, closestZ - botPos.z);
+              let t = 0;
+              if (horizLenSq > 0.00001) {
+                const vx = botPos.x - prevPos.x;
+                const vz = botPos.z - prevPos.z;
+                t = Math.max(0, Math.min(1, (vx * dx + vz * dz) / horizLenSq));
+              }
 
-            if (horizDist <= 1.25 && closestY >= (botPos.y + 0.1) && closestY <= (botPos.y + 2.7)) {
-              const isHead = closestY >= (botPos.y + 1.85);
-              const dmg = isHead ? p.damage * 2 : p.damage;
-              const finalBlow = bot.takeDamage(dmg, isHead, p.velocity.clone().normalize());
-              onHitCallback(bot, dmg, isHead, finalBlow);
-              hit = true;
-              break;
+              const closestX = prevPos.x + dx * t;
+              const closestZ = prevPos.z + dz * t;
+              const closestY = prevPos.y + (p.mesh.position.y - prevPos.y) * t;
+              const horizDist = Math.hypot(closestX - botPos.x, closestZ - botPos.z);
+
+              if (horizDist <= 1.25 && closestY >= (botPos.y + 0.1) && closestY <= (botPos.y + 2.7)) {
+                const isHead = closestY >= (botPos.y + 1.85);
+                const dmg = isHead ? p.damage * 2 : p.damage;
+                const finalBlow = bot.takeDamage(dmg, isHead, p.velocity.clone().normalize());
+                onHitCallback(bot, dmg, isHead, finalBlow);
+                this.spawnHitSparks(new THREE.Vector3(closestX, closestY, closestZ), new THREE.Vector3(0, 1, 0), 0x10b981, 8);
+                hit = true;
+                break;
+              }
             }
           }
         }
@@ -3429,72 +3818,102 @@ class ProjectileManager {
           });
           this.projectiles.splice(i, 1);
         }
+
+      // --- FIRE STRIKE ---
       } else if (p.type === 'firestrike') {
         p.life -= dt;
         const prevPos = p.lastPos ? p.lastPos.clone() : p.mesh.position.clone();
         p.mesh.position.addScaledVector(p.velocity, dt);
         p.lastPos = p.mesh.position.clone();
-        p.mesh.rotation.z += 8 * dt;
+
+        // Fiery wobble and subtle spin
+        p.mesh.rotation.z += 4.5 * dt;
 
         let wallBlocked = false;
-
-        // Wall & Obstacle Collision Check (Reinhardt Fire Strike cannot pass through solid walls)
         if (map && typeof map.checkProjectileHit === 'function') {
-          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.6);
+          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.7);
           if (wallHit.hit) {
             wallBlocked = true;
+            this.spawnHitSparks(wallHit.point || prevPos, new THREE.Vector3(0, 1, 0), 0xff4500, 14);
           }
         }
 
         if (!wallBlocked) {
-          const dx = p.mesh.position.x - prevPos.x;
-          const dz = p.mesh.position.z - prevPos.z;
-          const horizLenSq = dx * dx + dz * dz;
+          if (p.isRemote) {
+            // Remote Fire Strike flying toward player
+            if (playerContext && playerContext.playerPos && playerContext.currentHero) {
+              const pPos = playerContext.playerPos;
+              const pHero = playerContext.currentHero;
+              const pCam = playerContext.camera;
+              const dist = p.mesh.position.distanceTo(pPos);
 
-          // Piercing swept hit check against enemy cylinder
-          for (const bot of bots) {
-            if (bot.isDead || p.hitBots.has(bot.id || bot)) continue;
-            const botPos = bot.group.position;
-
-            let t = 0;
-            if (horizLenSq > 0.00001) {
-              const vx = botPos.x - prevPos.x;
-              const vz = botPos.z - prevPos.z;
-              t = Math.max(0, Math.min(1, (vx * dx + vz * dz) / horizLenSq));
+              // Genji can deflect Fire Strike!
+              if (dist < 2.2 && pHero.name === 'GENJI' && pHero.isDeflecting) {
+                p.isRemote = false; // Deflected flame wave now belongs to local Genji!
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
+                p.velocity.copy(forward).multiplyScalar(24);
+                p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), forward);
+                if (playerContext.audio) playerContext.audio.playGenjiDeflect();
+                if (playerContext.shaker) playerContext.shaker.addTrauma(0.3);
+                continue;
+              }
             }
+          } else {
+            // Local Fire Strike: Piercing swept hit check
+            const dx = p.mesh.position.x - prevPos.x;
+            const dz = p.mesh.position.z - prevPos.z;
+            const horizLenSq = dx * dx + dz * dz;
 
-            const closestX = prevPos.x + dx * t;
-            const closestZ = prevPos.z + dz * t;
-            const closestY = prevPos.y + (p.mesh.position.y - prevPos.y) * t;
-            const horizDist = Math.hypot(closestX - botPos.x, closestZ - botPos.z);
+            for (const bot of bots) {
+              if (bot.isDead || p.hitBots.has(bot.id || bot)) continue;
+              const botPos = bot.group.position;
 
-            if (horizDist <= 2.4 && closestY >= botPos.y && closestY <= botPos.y + 3.0) {
-              p.hitBots.add(bot.id || bot);
-              const finalBlow = bot.takeDamage(p.damage, false, p.velocity.clone().normalize());
-              onHitCallback(bot, p.damage, false, finalBlow);
+              let t = 0;
+              if (horizLenSq > 0.00001) {
+                const vx = botPos.x - prevPos.x;
+                const vz = botPos.z - prevPos.z;
+                t = Math.max(0, Math.min(1, (vx * dx + vz * dz) / horizLenSq));
+              }
+
+              const closestX = prevPos.x + dx * t;
+              const closestZ = prevPos.z + dz * t;
+              const closestY = prevPos.y + (p.mesh.position.y - prevPos.y) * t;
+              const horizDist = Math.hypot(closestX - botPos.x, closestZ - botPos.z);
+
+              if (horizDist <= 2.4 && closestY >= botPos.y && closestY <= botPos.y + 3.0) {
+                p.hitBots.add(bot.id || bot);
+                const finalBlow = bot.takeDamage(p.damage, false, p.velocity.clone().normalize());
+                onHitCallback(bot, p.damage, false, finalBlow);
+                this.spawnHitSparks(new THREE.Vector3(closestX, closestY, closestZ), new THREE.Vector3(0, 1, 0), 0xff5500, 12);
+              }
             }
           }
         }
 
         if (wallBlocked || p.life <= 0) {
           this.scene.remove(p.mesh);
-          p.mesh.geometry.dispose();
-          p.mesh.material.dispose();
+          p.mesh.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
           this.projectiles.splice(i, 1);
         }
+
+      // --- PULSE BOMB ---
       } else if (p.type === 'pulsebomb') {
         if (!p.isStuck) {
           const prevPos = p.mesh.position.clone();
           p.velocity.y += p.gravity * dt;
           p.mesh.position.addScaledVector(p.velocity, dt);
 
-          // Wall / Obstacle Collision Check (Sticks to wall on contact)
+          // Wall collision (Sticks to wall on contact)
           if (map && typeof map.checkProjectileHit === 'function') {
             const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.22);
             if (wallHit.hit) {
               p.isStuck = true;
               p.mesh.position.copy(wallHit.point);
               p.velocity.set(0, 0, 0);
+              if (p.ringMesh) p.ringMesh.visible = true;
             }
           }
 
@@ -3503,6 +3922,7 @@ class ProjectileManager {
             p.mesh.position.y = 0.15;
             p.velocity.set(0, 0, 0);
             p.isStuck = true;
+            if (p.ringMesh) p.ringMesh.visible = true;
           }
 
           // Target Body collision (Sticks to player/bot body)
@@ -3516,6 +3936,7 @@ class ProjectileManager {
                 p.isStuck = true;
                 p.stuckTarget = bot;
                 p.velocity.set(0, 0, 0);
+                if (p.ringMesh) p.ringMesh.visible = true;
                 break;
               }
             }
@@ -3526,28 +3947,44 @@ class ProjectileManager {
 
         // Pulse Countdown & Flash
         p.countdown -= dt;
-        const blinkFreq = p.countdown < 0.5 ? 20 : 8;
-        p.mesh.material.color.setHex(Math.sin(Date.now() * 0.02 * blinkFreq) > 0 ? 0xff0044 : 0x00f0ff);
+        const blinkFreq = p.countdown < 0.5 ? 22 : 8;
+        const isBlinkRed = Math.sin(Date.now() * 0.02 * blinkFreq) > 0;
+        if (p.coreMesh) p.coreMesh.material.color.setHex(isBlinkRed ? 0xef4444 : 0x00f0ff);
+
+        // Expand holographic ring
+        if (p.ringMesh && p.ringMesh.visible) {
+          const ringScale = 1.0 + (1.5 - p.countdown) * 0.8;
+          p.ringMesh.scale.set(ringScale, ringScale, 1.0);
+          p.ringMesh.material.opacity = 0.5 + Math.sin(Date.now() * 0.025 * blinkFreq) * 0.4;
+        }
 
         if (p.countdown <= 0) {
           // EXPLODE!
-          for (const bot of bots) {
-            if (bot.isDead) continue;
-            const targetCenter = bot.group.position.clone().add(new THREE.Vector3(0, 1.0, 0));
-            const dist = p.mesh.position.distanceTo(targetCenter);
-            if (dist < 5.5) {
-              const falloff = 1 - dist / 5.5;
-              const dmg = Math.floor(p.damage * falloff);
-              const finalBlow = bot.takeDamage(dmg, false, new THREE.Vector3(0, 1, 0));
-              onHitCallback(bot, dmg, false, finalBlow);
+          this.spawnHitSparks(p.mesh.position, new THREE.Vector3(0, 1, 0), 0x00f0ff, 24);
+
+          if (!p.isRemote) {
+            for (const bot of bots) {
+              if (bot.isDead) continue;
+              const targetCenter = bot.group.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+              const dist = p.mesh.position.distanceTo(targetCenter);
+              if (dist < 5.5) {
+                const falloff = 1 - dist / 5.5;
+                const dmg = Math.floor(p.damage * falloff);
+                const finalBlow = bot.takeDamage(dmg, false, new THREE.Vector3(0, 1, 0));
+                onHitCallback(bot, dmg, false, finalBlow);
+              }
             }
           }
 
           this.scene.remove(p.mesh);
-          p.mesh.geometry.dispose();
-          p.mesh.material.dispose();
+          p.mesh.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
           this.projectiles.splice(i, 1);
         }
+
+      // --- BOT / ENEMY PLASMA BOLT ---
       } else if (p.type === 'enemy_bolt') {
         p.life -= dt;
         const prevPos = p.lastPos ? p.lastPos.clone() : p.mesh.position.clone();
@@ -3561,6 +3998,7 @@ class ProjectileManager {
           const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.18);
           if (wallHit.hit) {
             hit = true;
+            this.spawnHitSparks(wallHit.point || prevPos, new THREE.Vector3(0, 1, 0), 0xff2244, 8);
           }
         }
 
@@ -3577,12 +4015,14 @@ class ProjectileManager {
                 // 1. Check Genji Deflect
                 if (pHero.name === 'GENJI' && pHero.isDeflecting) {
                   p.isReflected = true;
-                  if (p.mesh.children && p.mesh.children[0]) {
-                    p.mesh.children[0].material.color.setHex(0x00ff88);
-                  }
-                  p.mesh.material.color.setHex(0x10b981);
+                  p.mesh.traverse((child) => {
+                    if (child.material && child.material.color) {
+                      child.material.color.setHex(0x10b981);
+                    }
+                  });
                   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
-                  p.velocity.copy(forward).multiplyScalar(42);
+                  p.velocity.copy(forward).multiplyScalar(44);
+                  p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), forward);
                   if (playerContext.audio) playerContext.audio.playGenjiDeflect();
                   if (playerContext.shaker) playerContext.shaker.addTrauma(0.18);
                   continue;
@@ -3596,6 +4036,7 @@ class ProjectileManager {
                   const toBolt = p.mesh.position.clone().sub(pPos).normalize();
                   if (forward.dot(toBolt) > 0.1) {
                     pHero.takeShieldDamage(p.damage);
+                    this.spawnHitSparks(p.mesh.position, toBolt.negate(), 0x38bdf8, 8);
                     if (playerContext.audio) playerContext.audio.playHit(false);
                     if (playerContext.shaker) playerContext.shaker.addTrauma(0.08);
                     hit = true;
@@ -3603,8 +4044,9 @@ class ProjectileManager {
                 }
 
                 if (!hit && !p.isReflected) {
-                  // Direct hit on unshielded player
+                  // Direct hit on unshielded local player
                   pHero.takeDamage(p.damage);
+                  this.spawnHitSparks(p.mesh.position, new THREE.Vector3(0, 1, 0), 0xef4444, 10);
                   if (playerContext.audio) playerContext.audio.playDamage();
                   if (playerContext.shaker) playerContext.shaker.addTrauma(0.2);
                   if (playerContext.ui) playerContext.ui.triggerDamageFlash();
@@ -3623,6 +4065,7 @@ class ProjectileManager {
                 if (typeof onHitCallback === 'function') {
                   onHitCallback(bot, 50, false, finalBlow);
                 }
+                this.spawnHitSparks(p.mesh.position, new THREE.Vector3(0, 1, 0), 0x10b981, 10);
                 hit = true;
                 break;
               }
@@ -4002,6 +4445,12 @@ class RemotePlayer {
     this.group.position.copy(this.targetPos);
     this.group.rotation.y = this.targetYaw;
 
+    // Walk animation state & displacement tracking
+    this.animNodes = null;
+    this.walkTime = 0;
+    this.lastPos = this.group.position.clone();
+    this.hammerSwingTimer = 0;
+
     // Model parts
     this.modelGroup = new THREE.Group();
     this.modelGroup.rotation.y = Math.PI; // Face forward in player look direction
@@ -4044,6 +4493,7 @@ class RemotePlayer {
     this.hitMeshes = [];
     this.origMaterials.clear();
     this.shieldMesh = null;
+    this.animNodes = null;
 
     let modelData;
     if (heroKey === 'reinhardt') {
@@ -4057,6 +4507,7 @@ class RemotePlayer {
 
     this.bodyMesh = modelData.bodyMesh;
     this.headMesh = modelData.headMesh;
+    this.animNodes = modelData.animNodes || null;
     this.hitMeshes = modelData.hitMeshes ? [...modelData.hitMeshes] : [];
 
     // Assign critical headshot & body metadata
@@ -4228,11 +4679,44 @@ class RemotePlayer {
     this.updateHUDCanvas();
   }
 
+  triggerHammerSwing() {
+    this.hammerSwingTimer = 0.45;
+  }
+
   // ==========================================================================
-  // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp)
+  // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp, Walking Motion)
   // ==========================================================================
   update(dt, camera) {
     if (this.isDead) return;
+
+    // 0. Walking animation & idle breathing (HeroModels.js)
+    const dx = this.group.position.x - this.lastPos.x;
+    const dz = this.group.position.z - this.lastPos.z;
+    const distSq = dx * dx + dz * dz;
+    const targetDistSq = this.group.position.distanceToSquared(this.targetPos);
+    const speed = Math.sqrt(distSq) / Math.max(dt, 0.001);
+    const isMoving = speed > 0.08 || targetDistSq > 0.02;
+
+    if (isMoving) {
+      this.walkTime += dt;
+    } else {
+      this.walkTime += dt * 0.6; // Advance subtle idle breathing
+    }
+
+    if (this.animNodes) {
+      animateHeroWalk(this.animNodes, this.heroKey, this.walkTime, isMoving, dt);
+
+      // Procedural hammer swing arc for remote Reinhardt
+      if (this.heroKey === 'reinhardt' && this.hammerSwingTimer > 0) {
+        this.hammerSwingTimer -= dt;
+        const progress = 1 - (this.hammerSwingTimer / 0.45);
+        if (this.animNodes.weapon) {
+          this.animNodes.weapon.rotation.z = Math.sin(progress * Math.PI) * 1.5;
+          this.animNodes.weapon.rotation.x = Math.cos(progress * Math.PI) * 0.8;
+        }
+      }
+    }
+    this.lastPos.copy(this.group.position);
 
     // 1. Position Lerp (smooth 25Hz -> 60FPS)
     this.group.position.lerp(this.targetPos, Math.min(1.0, dt * 18.0));
@@ -6310,6 +6794,11 @@ class OverwatchGame {
     this.network = new NetworkManager();
     this.map = new MapBuilder(this.scene);
     this.projectiles = new ProjectileManager(this.scene);
+    this.projectiles.onProjectileSpawned = (type, data) => {
+      if (this.network && this.network.isConnected) {
+        this.network.sendAction(type, data);
+      }
+    };
     this.ui = new UIManager();
 
     // 3. Player Physics State
@@ -6556,6 +7045,26 @@ class OverwatchGame {
           new THREE.Vector3(...data.end),
           0x00f0ff
         );
+      } else if (actionType === 'shuriken' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnShuriken(origin, dir, null, true);
+        this.audio.playGenjiShuriken();
+      } else if (actionType === 'fire_strike' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnFireStrike(origin, dir, null, true);
+        this.audio.playReinhardtSwing();
+      } else if (actionType === 'pulse_bomb' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnPulseBomb(origin, dir, null, true);
+        this.audio.playTracerBlink();
+      } else if (actionType === 'hammer_swing') {
+        this.audio.playReinhardtSwing();
+        if (rp && rp.triggerHammerSwing) {
+          rp.triggerHammerSwing();
+        }
       } else if (actionType === 'blink' && data.from && data.to) {
         this.projectiles.addMotionStreak(
           new THREE.Vector3(...data.from),
@@ -7074,26 +7583,34 @@ class OverwatchGame {
       renderer.setSize(nw, nh, false);
     };
 
+    let currentAnimNodes = null;
+    let currentShowcaseHeroKey = this.currentHeroKey || 'tracer';
+    let showcaseWalkTime = 0;
+
     const loadHero = (heroKey) => {
       while (showcaseGroup.children.length > 0) {
         showcaseGroup.remove(showcaseGroup.children[0]);
       }
       targetRotY = 0;
       currentRotY = 0;
+      currentShowcaseHeroKey = heroKey;
 
       if (heroKey === 'reinhardt') {
         const data = buildReinhardtModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
         if (heroTitle) heroTitle.textContent = '라인하르트 (REINHARDT)';
         ringMat.color.setHex(0xf59e0b);
       } else if (heroKey === 'genji') {
         const data = buildGenjiModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
         if (heroTitle) heroTitle.textContent = '겐지 (GENJI)';
         ringMat.color.setHex(0x55ff22);
       } else {
         const data = buildTracerModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
         if (heroTitle) heroTitle.textContent = '트레이서 (TRACER)';
         ringMat.color.setHex(0xf97316);
       }
@@ -7117,6 +7634,12 @@ class OverwatchGame {
       }
       currentRotY += (targetRotY - currentRotY) * 0.1;
       showcaseGroup.rotation.y = currentRotY;
+
+      // Dynamic lobby idle breathing animation
+      if (currentAnimNodes) {
+        showcaseWalkTime += 0.016;
+        animateHeroWalk(currentAnimNodes, currentShowcaseHeroKey, showcaseWalkTime, false, 0.016);
+      }
 
       renderer.render(scene, camera);
     };
@@ -7631,6 +8154,11 @@ class OverwatchGame {
             }
           }
         } else if (hitResult.isHammer || hitResult.isDragonblade) {
+          // Broadcast hammer swing to remote opponents
+          if (hitResult.isHammer) {
+            this.network.sendAction('hammer_swing', {});
+          }
+
           // Melee Cleave Arc (Reinhardt Rocket Hammer / Genji Dragonblade)
           const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
           forward.y = 0;

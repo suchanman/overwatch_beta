@@ -1,4 +1,4 @@
-import { buildReinhardtModel, buildTracerModel, buildGenjiModel } from './HeroModels.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel, animateHeroWalk } from './HeroModels.js';
 
 export class RemotePlayer {
   constructor(scene, playerData) {
@@ -33,6 +33,12 @@ export class RemotePlayer {
     this.group = new THREE.Group();
     this.group.position.copy(this.targetPos);
     this.group.rotation.y = this.targetYaw;
+
+    // Walk animation state & displacement tracking
+    this.animNodes = null;
+    this.walkTime = 0;
+    this.lastPos = this.group.position.clone();
+    this.hammerSwingTimer = 0;
 
     // Model parts
     this.modelGroup = new THREE.Group();
@@ -76,6 +82,7 @@ export class RemotePlayer {
     this.hitMeshes = [];
     this.origMaterials.clear();
     this.shieldMesh = null;
+    this.animNodes = null;
 
     let modelData;
     if (heroKey === 'reinhardt') {
@@ -89,6 +96,7 @@ export class RemotePlayer {
 
     this.bodyMesh = modelData.bodyMesh;
     this.headMesh = modelData.headMesh;
+    this.animNodes = modelData.animNodes || null;
     this.hitMeshes = modelData.hitMeshes ? [...modelData.hitMeshes] : [];
 
     // Assign critical headshot & body metadata
@@ -260,11 +268,44 @@ export class RemotePlayer {
     this.updateHUDCanvas();
   }
 
+  triggerHammerSwing() {
+    this.hammerSwingTimer = 0.45;
+  }
+
   // ==========================================================================
-  // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp)
+  // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp, Walking Motion)
   // ==========================================================================
   update(dt, camera) {
     if (this.isDead) return;
+
+    // 0. Walking animation & idle breathing (HeroModels.js)
+    const dx = this.group.position.x - this.lastPos.x;
+    const dz = this.group.position.z - this.lastPos.z;
+    const distSq = dx * dx + dz * dz;
+    const targetDistSq = this.group.position.distanceToSquared(this.targetPos);
+    const speed = Math.sqrt(distSq) / Math.max(dt, 0.001);
+    const isMoving = speed > 0.08 || targetDistSq > 0.02;
+
+    if (isMoving) {
+      this.walkTime += dt;
+    } else {
+      this.walkTime += dt * 0.6; // Advance subtle idle breathing
+    }
+
+    if (this.animNodes) {
+      animateHeroWalk(this.animNodes, this.heroKey, this.walkTime, isMoving, dt);
+
+      // Procedural hammer swing arc for remote Reinhardt
+      if (this.heroKey === 'reinhardt' && this.hammerSwingTimer > 0) {
+        this.hammerSwingTimer -= dt;
+        const progress = 1 - (this.hammerSwingTimer / 0.45);
+        if (this.animNodes.weapon) {
+          this.animNodes.weapon.rotation.z = Math.sin(progress * Math.PI) * 1.5;
+          this.animNodes.weapon.rotation.x = Math.cos(progress * Math.PI) * 0.8;
+        }
+      }
+    }
+    this.lastPos.copy(this.group.position);
 
     // 1. Position Lerp (smooth 25Hz -> 60FPS)
     this.group.position.lerp(this.targetPos, Math.min(1.0, dt * 18.0));

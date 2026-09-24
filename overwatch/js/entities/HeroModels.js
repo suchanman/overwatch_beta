@@ -339,7 +339,17 @@ export function buildReinhardtModel(parentGroup) {
     bodyMesh: chest,
     headMesh: helmet,
     shieldMesh,
-    hitMeshes
+    hitMeshes,
+    animNodes: {
+      root: reinhardtRoot,
+      torso: torsoGroup,
+      head: headGroup,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg: leftLegGroup,
+      rightLeg: rightLegGroup,
+      weapon: hammerGroup
+    }
   };
 }
 
@@ -511,7 +521,16 @@ export function buildTracerModel(parentGroup) {
     rootGroup: tracerRoot,
     bodyMesh: chest,
     headMesh: head,
-    hitMeshes
+    hitMeshes,
+    animNodes: {
+      root: tracerRoot,
+      torso: torsoGroup,
+      head: head,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg: leftLegGroup,
+      rightLeg: rightLegGroup
+    }
   };
 }
 
@@ -793,6 +812,138 @@ export function buildGenjiModel(parentGroup) {
     rootGroup: genjiRoot,
     bodyMesh: chestCore,
     headMesh: dome,
-    hitMeshes
+    hitMeshes,
+    animNodes: {
+      root: genjiRoot,
+      torso: chestGroup,
+      head: dome,
+      leftArm,
+      rightArm,
+      leftLeg,
+      rightLeg
+    }
   };
+}
+
+// ============================================================================
+// DYNAMIC PROCEDURAL WALKING & IDLE ANIMATION ENGINE
+// - Reinhardt: Heavy armored footfalls, mass-shifting hammer sway & torso tilt
+// - Genji: Agile cybernetic ninja stride, aerodynamic forward lean & arm swing
+// - Tracer: Ultra-fast springy cadence, twin pulse pistol pump & energetic bounce
+// ============================================================================
+export function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
+  if (!animNodes) return;
+
+  const lerpFactor = Math.min(1.0, dt * 14.0);
+
+  if (heroKey === 'reinhardt') {
+    const freq = 6.0; // Heavy, deliberate stride
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Heavy crusader legs stride
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = sinVal * 0.48;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -sinVal * 0.48;
+
+      // Heavy left arm swing & hammer lag
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -sinVal * 0.32;
+      if (animNodes.weapon) animNodes.weapon.rotation.x = (Math.PI / 8) + sinVal * 0.18;
+
+      // Side-to-side weight transfer & step thud
+      if (animNodes.root) {
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.045, lerpFactor);
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 1.35 - Math.abs(cosVal) * 0.05, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.06, lerpFactor);
+      }
+    } else {
+      // Idle recovery & subtle breathing
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, 0, lerpFactor);
+      if (animNodes.weapon) animNodes.weapon.rotation.x = THREE.MathUtils.lerp(animNodes.weapon.rotation.x, Math.PI / 8, lerpFactor);
+      if (animNodes.root) {
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 1.35 + Math.sin(walkTime * 2.0) * 0.015, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+    }
+  } else if (heroKey === 'genji') {
+    const freq = 9.2; // Quick, controlled ninja stride
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Ninja aerodynamic stride
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = -0.02 + sinVal * 0.60;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -0.02 - sinVal * 0.60;
+
+      // Cybernetic arms counter-swing
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = 0.10 - sinVal * 0.44;
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = 0.10 + sinVal * 0.44;
+
+      // Agile forward lean & footstep bounce
+      if (animNodes.torso) {
+        animNodes.torso.rotation.x = THREE.MathUtils.lerp(animNodes.torso.rotation.x, 0.14 + Math.abs(cosVal) * 0.04, lerpFactor);
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.08, lerpFactor);
+      }
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, -0.045 + Math.abs(sinVal) * 0.04, lerpFactor);
+      }
+    } else {
+      // Ninja poised idle
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, -0.02, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, -0.02, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, 0.10, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, 0.10, lerpFactor);
+      if (animNodes.torso) {
+        animNodes.torso.rotation.x = THREE.MathUtils.lerp(animNodes.torso.rotation.x, Math.sin(walkTime * 2.5) * 0.02, lerpFactor);
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, -0.045, lerpFactor);
+      }
+    }
+  } else {
+    // Tracer
+    const freq = 11.5; // High cadence rapid sprint
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Energetic high mobility stride
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = sinVal * 0.70;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -sinVal * 0.70;
+
+      // Dual pistol arm pump
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -sinVal * 0.50;
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = sinVal * 0.50;
+
+      // Cheerful bounce & hip sway
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 0.08 + Math.abs(cosVal) * 0.06, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.045, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.10, lerpFactor);
+      }
+    } else {
+      // Lively Tracer idle breathing
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, 0, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, 0, lerpFactor);
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 0.08 + Math.sin(walkTime * 3.2) * 0.015, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+    }
+  }
 }

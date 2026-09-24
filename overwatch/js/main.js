@@ -27,7 +27,7 @@ import { Tracer } from './heroes/Tracer.js';
 import { Genji } from './heroes/Genji.js';
 import { Reinhardt } from './heroes/Reinhardt.js';
 import { UIManager } from './ui/UIManager.js';
-import { buildReinhardtModel, buildTracerModel, buildGenjiModel } from './entities/HeroModels.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel, animateHeroWalk } from './entities/HeroModels.js';
 
 class OverwatchGame {
   constructor() {
@@ -66,6 +66,11 @@ class OverwatchGame {
     this.network = new NetworkManager();
     this.map = new MapBuilder(this.scene);
     this.projectiles = new ProjectileManager(this.scene);
+    this.projectiles.onProjectileSpawned = (type, data) => {
+      if (this.network && this.network.isConnected) {
+        this.network.sendAction(type, data);
+      }
+    };
     this.ui = new UIManager();
 
     // 3. Player Physics State
@@ -312,6 +317,26 @@ class OverwatchGame {
           new THREE.Vector3(...data.end),
           0x00f0ff
         );
+      } else if (actionType === 'shuriken' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnShuriken(origin, dir, null, true);
+        this.audio.playGenjiShuriken();
+      } else if (actionType === 'fire_strike' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnFireStrike(origin, dir, null, true);
+        this.audio.playReinhardtSwing();
+      } else if (actionType === 'pulse_bomb' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnPulseBomb(origin, dir, null, true);
+        this.audio.playTracerBlink();
+      } else if (actionType === 'hammer_swing') {
+        this.audio.playReinhardtSwing();
+        if (rp && rp.triggerHammerSwing) {
+          rp.triggerHammerSwing();
+        }
       } else if (actionType === 'blink' && data.from && data.to) {
         this.projectiles.addMotionStreak(
           new THREE.Vector3(...data.from),
@@ -830,26 +855,34 @@ class OverwatchGame {
       renderer.setSize(nw, nh, false);
     };
 
+    let currentAnimNodes = null;
+    let currentShowcaseHeroKey = this.currentHeroKey || 'tracer';
+    let showcaseWalkTime = 0;
+
     const loadHero = (heroKey) => {
       while (showcaseGroup.children.length > 0) {
         showcaseGroup.remove(showcaseGroup.children[0]);
       }
       targetRotY = 0;
       currentRotY = 0;
+      currentShowcaseHeroKey = heroKey;
 
       if (heroKey === 'reinhardt') {
         const data = buildReinhardtModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
         if (heroTitle) heroTitle.textContent = '라인하르트 (REINHARDT)';
         ringMat.color.setHex(0xf59e0b);
       } else if (heroKey === 'genji') {
         const data = buildGenjiModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
         if (heroTitle) heroTitle.textContent = '겐지 (GENJI)';
         ringMat.color.setHex(0x55ff22);
       } else {
         const data = buildTracerModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
         if (heroTitle) heroTitle.textContent = '트레이서 (TRACER)';
         ringMat.color.setHex(0xf97316);
       }
@@ -873,6 +906,12 @@ class OverwatchGame {
       }
       currentRotY += (targetRotY - currentRotY) * 0.1;
       showcaseGroup.rotation.y = currentRotY;
+
+      // Dynamic lobby idle breathing animation
+      if (currentAnimNodes) {
+        showcaseWalkTime += 0.016;
+        animateHeroWalk(currentAnimNodes, currentShowcaseHeroKey, showcaseWalkTime, false, 0.016);
+      }
 
       renderer.render(scene, camera);
     };
@@ -1387,6 +1426,11 @@ class OverwatchGame {
             }
           }
         } else if (hitResult.isHammer || hitResult.isDragonblade) {
+          // Broadcast hammer swing to remote opponents
+          if (hitResult.isHammer) {
+            this.network.sendAction('hammer_swing', {});
+          }
+
           // Melee Cleave Arc (Reinhardt Rocket Hammer / Genji Dragonblade)
           const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
           forward.y = 0;
