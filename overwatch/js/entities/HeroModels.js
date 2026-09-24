@@ -826,10 +826,278 @@ export function buildGenjiModel(parentGroup) {
 }
 
 // ============================================================================
+// 4. MCCREE (CASSIDY) MODEL BUILDER
+// - Iconic cowboy hat with curved brim, hatband with brass bullet loops
+// - Red draped serape (poncho) with gold trim patterns and cloth folds
+// - Mechanical prosthetic left arm with cyan glow, holster, flashbangs on belt
+// - BAMF gold belt buckle, rugged chaps, boots with spinning silver spurs
+// - Signature Peacekeeper Revolver with 6-chamber cylinder and long barrel
+// - Rugged bearded face, cigar with glowing cherry
+// ============================================================================
+export function buildMcCreeModel(parentGroup) {
+  const mccreeRoot = new THREE.Group();
+
+  // Materials
+  const hatMat = new THREE.MeshStandardMaterial({ color: 0x3b2518, roughness: 0.8, metalness: 0.1 });
+  const hatbandMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.7, metalness: 0.2 });
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xe3a878, roughness: 0.55, metalness: 0.05 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: 0x22150f, roughness: 0.9, metalness: 0.05 });
+  const serapeMat = new THREE.MeshStandardMaterial({ color: 0x962b2b, roughness: 0.75, metalness: 0.05 });
+  const serapeTrimMat = new THREE.MeshStandardMaterial({ color: 0xd4a017, roughness: 0.4, metalness: 0.6 });
+  const shirtMat = new THREE.MeshStandardMaterial({ color: 0x5a5e63, roughness: 0.7, metalness: 0.15 });
+  const armorMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.45, metalness: 0.5 });
+  const beltMat = new THREE.MeshStandardMaterial({ color: 0x26150b, roughness: 0.65, metalness: 0.2 });
+  const buckleMat = new THREE.MeshStandardMaterial({ color: 0xf2c313, roughness: 0.25, metalness: 0.85 });
+  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1f2529, roughness: 0.8, metalness: 0.1 });
+  const chapsMat = new THREE.MeshStandardMaterial({ color: 0x4a2f1d, roughness: 0.6, metalness: 0.2 });
+  const bootsMat = new THREE.MeshStandardMaterial({ color: 0x26160d, roughness: 0.5, metalness: 0.3 });
+  const silverMat = new THREE.MeshStandardMaterial({ color: 0xb8c0c7, roughness: 0.25, metalness: 0.85 });
+  const mechMat = new THREE.MeshStandardMaterial({ color: 0x949ba3, roughness: 0.3, metalness: 0.8 });
+  const mechDarkMat = new THREE.MeshStandardMaterial({ color: 0x40454a, roughness: 0.4, metalness: 0.7 });
+  const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
+  const gunSteelMat = new THREE.MeshStandardMaterial({ color: 0x4c5257, roughness: 0.3, metalness: 0.85 });
+  const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x59341b, roughness: 0.45, metalness: 0.1 });
+  const cigarMat = new THREE.MeshStandardMaterial({ color: 0x3a2010, roughness: 0.9, metalness: 0.0 });
+  const cherryMat = new THREE.MeshBasicMaterial({ color: 0xff4d00 });
+  const flashbangMat = new THREE.MeshStandardMaterial({ color: 0x425734, roughness: 0.5, metalness: 0.3 });
+
+  const hitMeshes = [];
+
+  // 1. Torso Group
+  const torsoGroup = new THREE.Group();
+  torsoGroup.position.set(0, 1.05, 0);
+  mccreeRoot.add(torsoGroup);
+
+  // Shirt / Abdomen base
+  const shirt = createMesh(new THREE.BoxGeometry(0.38, 0.45, 0.24), shirtMat, 0, 0, 0);
+  torsoGroup.add(shirt);
+  hitMeshes.push(shirt);
+
+  // Chest Armor Plate (over tactical shirt)
+  const chestPlate = createMesh(new THREE.BoxGeometry(0.36, 0.26, 0.06), armorMat, 0, 0.09, 0.11);
+  torsoGroup.add(chestPlate);
+  hitMeshes.push(chestPlate);
+
+  // Western Belt
+  const belt = createMesh(new THREE.BoxGeometry(0.40, 0.08, 0.26), beltMat, 0, -0.20, 0);
+  torsoGroup.add(belt);
+
+  // Big Gold BAMF Buckle
+  const buckle = createMesh(new THREE.BoxGeometry(0.14, 0.07, 0.04), buckleMat, 0, -0.20, 0.14);
+  torsoGroup.add(buckle);
+
+  // Flashbang canisters on left hip
+  for (let i = 0; i < 2; i++) {
+    const fb = createMesh(new THREE.CylinderGeometry(0.028, 0.028, 0.10, 12), flashbangMat, -0.21, -0.19, -0.04 + i * 0.08);
+    const fbCap = createMesh(new THREE.CylinderGeometry(0.018, 0.018, 0.025, 12), silverMat, -0.21, -0.13, -0.04 + i * 0.08);
+    torsoGroup.add(fb, fbCap);
+  }
+
+  // Gun Holster on right hip
+  const holster = createMesh(new THREE.BoxGeometry(0.09, 0.22, 0.11), chapsMat, 0.22, -0.26, 0.02);
+  holster.rotation.z = -0.08;
+  torsoGroup.add(holster);
+
+  // 2. Red Serape (Poncho draped over left shoulder with golden trim)
+  const serapeGroup = new THREE.Group();
+  torsoGroup.add(serapeGroup);
+
+  // Left shoulder drape
+  const serapeShoulder = createMesh(new THREE.BoxGeometry(0.24, 0.14, 0.32), serapeMat, -0.16, 0.20, 0);
+  serapeShoulder.rotation.z = 0.12;
+  serapeGroup.add(serapeShoulder);
+
+  // Front cascading cloth drape
+  const serapeFront = createMesh(new THREE.BoxGeometry(0.28, 0.36, 0.05), serapeMat, -0.09, 0.02, 0.15);
+  serapeFront.rotation.z = 0.08;
+  serapeGroup.add(serapeFront);
+
+  // Golden trim pattern on serape front
+  const serapeTrim1 = createMesh(new THREE.BoxGeometry(0.28, 0.035, 0.055), serapeTrimMat, -0.09, -0.14, 0.151);
+  serapeTrim1.rotation.z = 0.08;
+  serapeGroup.add(serapeTrim1);
+
+  // Back cascading cloth drape
+  const serapeBack = createMesh(new THREE.BoxGeometry(0.30, 0.42, 0.05), serapeMat, -0.10, -0.01, -0.15);
+  serapeBack.rotation.z = 0.05;
+  serapeGroup.add(serapeBack);
+
+  const serapeTrimBack = createMesh(new THREE.BoxGeometry(0.30, 0.035, 0.055), serapeTrimMat, -0.10, -0.20, -0.151);
+  serapeTrimBack.rotation.z = 0.05;
+  serapeGroup.add(serapeTrimBack);
+
+  // 3. Head & Hat
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.36, 0.02);
+  torsoGroup.add(headGroup);
+
+  // Neck
+  const neck = createMesh(new THREE.CylinderGeometry(0.065, 0.075, 0.12, 12), skinMat, 0, -0.05, 0);
+  headGroup.add(neck);
+
+  // Face / Head
+  const headMesh = createMesh(new THREE.BoxGeometry(0.18, 0.20, 0.18), skinMat, 0, 0.06, 0);
+  headGroup.add(headMesh);
+  hitMeshes.push(headMesh);
+
+  // Dark beard & stubble
+  const beard = createMesh(new THREE.BoxGeometry(0.19, 0.10, 0.14), hairMat, 0, 0.01, 0.04);
+  headGroup.add(beard);
+
+  // Hair under hat
+  const backHair = createMesh(new THREE.BoxGeometry(0.20, 0.14, 0.12), hairMat, 0, 0.08, -0.07);
+  headGroup.add(backHair);
+
+  // Cigar in mouth with glowing ember cherry
+  const cigar = createMesh(new THREE.CylinderGeometry(0.014, 0.014, 0.09, 8), cigarMat, 0.07, 0.0, 0.14);
+  cigar.rotation.x = Math.PI / 2 + 0.1;
+  cigar.rotation.y = 0.3;
+  const cherry = createMesh(new THREE.SphereGeometry(0.016, 8, 8), cherryMat, 0.095, -0.005, 0.18);
+  headGroup.add(cigar, cherry);
+
+  // Cowboy Hat
+  const hatGroup = new THREE.Group();
+  hatGroup.position.set(0, 0.16, 0);
+  headGroup.add(hatGroup);
+
+  // Curved Hat Brim (Iconic curved-up edges)
+  const brimGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.024, 24);
+  brimGeo.scale(1.0, 1.0, 1.15);
+  const brim = createMesh(brimGeo, hatMat, 0, 0, 0);
+  hatGroup.add(brim);
+
+  // Curved brim flaps
+  const brimFlapL = createMesh(new THREE.BoxGeometry(0.08, 0.06, 0.32), hatMat, -0.32, 0.03, 0);
+  brimFlapL.rotation.z = 0.35;
+  const brimFlapR = createMesh(new THREE.BoxGeometry(0.08, 0.06, 0.32), hatMat, 0.32, 0.03, 0);
+  brimFlapR.rotation.z = -0.35;
+  hatGroup.add(brimFlapL, brimFlapR);
+
+  // Hat Crown (Tapered top with center crease)
+  const crownGeo = new THREE.CylinderGeometry(0.18, 0.21, 0.15, 16);
+  crownGeo.scale(0.95, 1.0, 1.1);
+  const crown = createMesh(crownGeo, hatMat, 0, 0.08, 0);
+  hatGroup.add(crown);
+
+  // Dark Hatband with golden bullet loops
+  const band = createMesh(new THREE.CylinderGeometry(0.212, 0.215, 0.04, 16), hatbandMat, 0, 0.03, 0);
+  hatGroup.add(band);
+
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
+    const bx = Math.cos(a) * 0.216;
+    const bz = Math.sin(a) * 0.222;
+    const bullet = createMesh(new THREE.CylinderGeometry(0.009, 0.009, 0.03, 6), buckleMat, bx, 0.03, bz);
+    hatGroup.add(bullet);
+  }
+
+  // 4. Left Arm (Cyborg Mechanical Arm with Cyan Glow)
+  const leftArmGroup = new THREE.Group();
+  leftArmGroup.position.set(-0.25, 0.18, 0);
+  torsoGroup.add(leftArmGroup);
+
+  const lShoulder = createMesh(new THREE.SphereGeometry(0.075, 12, 12), mechDarkMat, 0, 0, 0);
+  const lUpperArm = createMesh(new THREE.CylinderGeometry(0.055, 0.05, 0.22, 12), mechMat, 0, -0.11, 0);
+  const lElbow = createMesh(new THREE.SphereGeometry(0.055, 10, 10), mechDarkMat, 0, -0.22, 0);
+  const lForearm = createMesh(new THREE.CylinderGeometry(0.058, 0.048, 0.20, 12), mechMat, 0, -0.32, 0.04);
+  lForearm.rotation.x = 0.35;
+  const lGlow = createMesh(new THREE.BoxGeometry(0.03, 0.14, 0.015), glowCyanMat, 0, -0.32, 0.095);
+  lGlow.rotation.x = 0.35;
+  const lHand = createMesh(new THREE.BoxGeometry(0.07, 0.09, 0.05), mechDarkMat, 0, -0.42, 0.09);
+  leftArmGroup.add(lShoulder, lUpperArm, lElbow, lForearm, lGlow, lHand);
+  hitMeshes.push(lUpperArm, lForearm);
+
+  // 5. Right Arm (Shooting Arm holding Peacekeeper Revolver)
+  const rightArmGroup = new THREE.Group();
+  rightArmGroup.position.set(0.25, 0.18, 0);
+  torsoGroup.add(rightArmGroup);
+
+  const rShoulder = createMesh(new THREE.SphereGeometry(0.08, 12, 12), shirtMat, 0, 0, 0);
+  const rUpperArm = createMesh(new THREE.CylinderGeometry(0.065, 0.055, 0.22, 12), shirtMat, 0, -0.11, 0);
+  const rElbow = createMesh(new THREE.SphereGeometry(0.055, 10, 10), shirtMat, 0, -0.22, 0);
+  const rForearm = createMesh(new THREE.CylinderGeometry(0.058, 0.052, 0.20, 12), shirtMat, 0, -0.31, 0.05);
+  rForearm.rotation.x = 0.30;
+  const rGlove = createMesh(new THREE.BoxGeometry(0.075, 0.10, 0.06), chapsMat, 0, -0.41, 0.10);
+  rGlove.rotation.x = 0.30;
+  rightArmGroup.add(rShoulder, rUpperArm, rElbow, rForearm, rGlove);
+  hitMeshes.push(rUpperArm, rForearm);
+
+  // Peacekeeper Revolver in Right Hand
+  const gunGroup = new THREE.Group();
+  gunGroup.position.set(0, -0.44, 0.14);
+  gunGroup.rotation.x = 0.30;
+  rightArmGroup.add(gunGroup);
+
+  const gunGrip = createMesh(new THREE.BoxGeometry(0.04, 0.11, 0.06), gunWoodMat, 0, -0.04, -0.04);
+  gunGrip.rotation.x = -0.35;
+  const gunBody = createMesh(new THREE.BoxGeometry(0.05, 0.07, 0.12), gunSteelMat, 0, 0.02, 0.02);
+  const gunCyl = createMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 12), silverMat, 0, 0.02, 0.01);
+  gunCyl.rotation.x = Math.PI / 2;
+  const gunBarrel = createMesh(new THREE.CylinderGeometry(0.025, 0.025, 0.26, 8), gunSteelMat, 0, 0.04, 0.18);
+  gunBarrel.rotation.x = Math.PI / 2;
+  const gunSight = createMesh(new THREE.BoxGeometry(0.015, 0.025, 0.025), silverMat, 0, 0.07, 0.30);
+  const gunHammer = createMesh(new THREE.BoxGeometry(0.018, 0.035, 0.02), silverMat, 0, 0.06, -0.04);
+  gunGroup.add(gunGrip, gunBody, gunCyl, gunBarrel, gunSight, gunHammer);
+
+  // 6. Legs & Boots with Spurs
+  function buildMcCreeLeg(isRight) {
+    const legGroup = new THREE.Group();
+    const side = isRight ? 1 : -1;
+    legGroup.position.set(side * 0.13, 0.60, 0);
+
+    const thigh = createMesh(new THREE.CylinderGeometry(0.08, 0.068, 0.32, 12), pantsMat, 0, -0.16, 0);
+    const chapThigh = createMesh(new THREE.BoxGeometry(0.06, 0.30, 0.17), chapsMat, side * 0.04, -0.16, 0.01);
+    legGroup.add(thigh, chapThigh);
+
+    const knee = createMesh(new THREE.SphereGeometry(0.065, 10, 10), pantsMat, 0, -0.32, 0);
+    legGroup.add(knee);
+
+    const calf = createMesh(new THREE.CylinderGeometry(0.066, 0.060, 0.30, 12), chapsMat, 0, -0.47, 0);
+    legGroup.add(calf);
+
+    const boot = createMesh(new THREE.BoxGeometry(0.12, 0.12, 0.24), bootsMat, 0, -0.62, 0.04);
+    legGroup.add(boot);
+
+    const spurBand = createMesh(new THREE.BoxGeometry(0.13, 0.03, 0.08), silverMat, 0, -0.63, -0.08);
+    const spurWheel = createMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.012, 8), silverMat, 0, -0.63, -0.14);
+    spurWheel.rotation.x = Math.PI / 2;
+    legGroup.add(spurBand, spurWheel);
+
+    hitMeshes.push(thigh, calf);
+    return legGroup;
+  }
+
+  const leftLeg = buildMcCreeLeg(false);
+  const rightLeg = buildMcCreeLeg(true);
+  mccreeRoot.add(leftLeg, rightLeg);
+
+  // Ground calibration: Feet at y = 0
+  mccreeRoot.position.y = 0.0;
+  parentGroup.add(mccreeRoot);
+
+  return {
+    rootGroup: mccreeRoot,
+    bodyMesh: shirt,
+    headMesh,
+    hitMeshes,
+    animNodes: {
+      root: mccreeRoot,
+      torso: torsoGroup,
+      head: headGroup,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg,
+      rightLeg,
+      weapon: gunGroup
+    }
+  };
+}
+
+// ============================================================================
 // DYNAMIC PROCEDURAL WALKING & IDLE ANIMATION ENGINE
 // - Reinhardt: Heavy armored footfalls, mass-shifting hammer sway & torso tilt
 // - Genji: Agile cybernetic ninja stride, aerodynamic forward lean & arm swing
 // - Tracer: Ultra-fast springy cadence, twin pulse pistol pump & energetic bounce
+// - McCree: Gunslinger swagger strut, bowlegged cadence & combat roll rotation
 // ============================================================================
 export function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
   if (!animNodes) return;
@@ -908,6 +1176,52 @@ export function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
         animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, -0.045, lerpFactor);
       }
     }
+  } else if (heroKey === 'mccree') {
+    const freq = 7.0; // Gunslinger confident swagger
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      // Bowlegged western stride
+      if (animNodes.leftLeg) {
+        animNodes.leftLeg.rotation.x = sinVal * 0.54;
+        animNodes.leftLeg.rotation.z = -0.04;
+      }
+      if (animNodes.rightLeg) {
+        animNodes.rightLeg.rotation.x = -sinVal * 0.54;
+        animNodes.rightLeg.rotation.z = 0.04;
+      }
+
+      // Shooting arm with Peacekeeper counter-balance
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = 0.16 + sinVal * 0.28;
+      // Mechanical arm resting steady near belt
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -0.15 - sinVal * 0.18;
+
+      // Confident shoulder sway & step bounce
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.09, lerpFactor);
+        animNodes.torso.rotation.z = THREE.MathUtils.lerp(animNodes.torso.rotation.z, sinVal * 0.03, lerpFactor);
+      }
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, Math.abs(cosVal) * 0.04, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.025, lerpFactor);
+      }
+    } else {
+      // Poised western idle
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, 0.15, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, -0.12, lerpFactor);
+      if (animNodes.torso) {
+        animNodes.torso.rotation.x = THREE.MathUtils.lerp(animNodes.torso.rotation.x, Math.sin(walkTime * 2.2) * 0.015, lerpFactor);
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+        animNodes.torso.rotation.z = THREE.MathUtils.lerp(animNodes.torso.rotation.z, 0, lerpFactor);
+      }
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, 0, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+      }
+    }
   } else {
     // Tracer
     const freq = 11.5; // High cadence rapid sprint
@@ -947,3 +1261,4 @@ export function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
     }
   }
 }
+

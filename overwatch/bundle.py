@@ -15,6 +15,7 @@ files_order = [
     'js/heroes/Tracer.js',
     'js/heroes/Genji.js',
     'js/heroes/Reinhardt.js',
+    'js/heroes/McCree.js',
     'js/main.js'
 ]
 

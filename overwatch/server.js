@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 8000;
 
 app.use(express.static(path.join(__dirname)));
 
-const HERO_MAX_HP = { tracer: 300, genji: 400, reinhardt: 1000 };
+const HERO_MAX_HP = { tracer: 300, genji: 400, reinhardt: 1000, mccree: 450 };
 const SPAWN_POINTS = [
   [0.0, 1.7, 18.0],
   [-18.0, 1.7, 12.0],

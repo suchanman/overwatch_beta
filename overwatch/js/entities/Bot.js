@@ -249,6 +249,12 @@ export class TrainingBot {
     this.updateHealthBarTexture();
   }
 
+  takeStun(duration = 1.2) {
+    this.stunTimer = Math.max(this.stunTimer || 0, duration);
+    this.metalMat.color.setHex(0xfde047);
+    this.flashTimer = duration;
+  }
+
   update(dt, playerPos, projectileManager = null) {
     if (this.isDead) {
       // Debris Physics during death
@@ -264,6 +270,16 @@ export class TrainingBot {
       this.respawnTimer -= dt;
       if (this.respawnTimer <= 0) {
         this.respawn();
+      }
+      return;
+    }
+
+    // Stun status check (e.g. from McCree Flashbang)
+    if (this.stunTimer > 0) {
+      this.stunTimer -= dt;
+      // Yellow flashing sparks indicator
+      if (Math.random() < 0.25) {
+        this.metalMat.color.setHex(Math.random() < 0.5 ? 0xfde047 : 0xffffff);
       }
       return;
     }

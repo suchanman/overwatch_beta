@@ -670,6 +670,10 @@ html, body {
   background-color: #64748b;
   background-image: radial-gradient(circle at 50% 40%, #cbd5e1 0%, #475569 70%);
 }
+.portrait-mccree {
+  background-color: #b45309;
+  background-image: radial-gradient(circle at 50% 40%, #fde047 0%, #991b1b 75%);
+}
 
 .hero-level-tag {
   position: absolute;
@@ -1263,8 +1267,8 @@ html, body {
 
 .hero-showcase-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   width: 100%;
   margin: 10px 0;
 }
@@ -1321,6 +1325,7 @@ html, body {
 .tracer-img { background: radial-gradient(circle, #fde047 0%, #d97706 80%); }
 .genji-img { background: radial-gradient(circle, #86efac 0%, #059669 80%); }
 .reinhardt-img { background: radial-gradient(circle, #e2e8f0 0%, #475569 80%); }
+.mccree-img { background: radial-gradient(circle, #fde047 0%, #b91c1c 75%, #451a03 100%); }
 
 .card-hero-name {
   font-size: 18px;
@@ -1443,6 +1448,7 @@ html, body {
 .switch-card .portrait.tracer { background: radial-gradient(circle, #ffe49e 0%, #d97706 70%); }
 .switch-card .portrait.genji { background: radial-gradient(circle, #a7f3d0 0%, #059669 70%); }
 .switch-card .portrait.reinhardt { background: radial-gradient(circle, #cbd5e1 0%, #475569 70%); }
+.switch-card .portrait.mccree { background: radial-gradient(circle, #fde047 0%, #991b1b 75%); }
 
 .switch-card .name {
   font-size: clamp(13px, 2.4vh, 17px);
@@ -2402,6 +2408,7 @@ html, body {
 .hero-pill.tracer { background: rgba(235, 120, 10, 0.3); color: #fb923c; border: 1px solid #fb923c; }
 .hero-pill.genji { background: rgba(34, 197, 94, 0.3); color: #4ade80; border: 1px solid #4ade80; }
 .hero-pill.reinhardt { background: rgba(56, 189, 248, 0.3); color: #38bdf8; border: 1px solid #38bdf8; }
+.hero-pill.mccree { background: rgba(217, 119, 6, 0.3); color: #f59e0b; border: 1px solid #f59e0b; }
 
 /* ==========================================================================
    RESPAWN COUNTDOWN OVERLAY

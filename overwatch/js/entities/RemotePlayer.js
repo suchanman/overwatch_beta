@@ -1,4 +1,4 @@
-import { buildReinhardtModel, buildTracerModel, buildGenjiModel, animateHeroWalk } from './HeroModels.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel, buildMcCreeModel, animateHeroWalk } from './HeroModels.js';
 
 export class RemotePlayer {
   constructor(scene, playerData) {
@@ -7,7 +7,7 @@ export class RemotePlayer {
     this.name = playerData.name || '플레이어';
     this.heroKey = playerData.hero || 'tracer';
 
-    this.maxHp = playerData.maxHp || (this.heroKey === 'reinhardt' ? 1000 : (this.heroKey === 'genji' ? 400 : 300));
+    this.maxHp = playerData.maxHp || (this.heroKey === 'reinhardt' ? 1000 : (this.heroKey === 'mccree' ? 450 : (this.heroKey === 'genji' ? 400 : 300)));
     this.hp = playerData.hp !== undefined ? playerData.hp : this.maxHp;
     this.trailingHp = this.hp;
     this.trailDelay = 0;
@@ -39,6 +39,7 @@ export class RemotePlayer {
     this.walkTime = 0;
     this.lastPos = this.group.position.clone();
     this.hammerSwingTimer = 0;
+    this.rollTimer = 0;
 
     // Model parts
     this.modelGroup = new THREE.Group();
@@ -88,6 +89,8 @@ export class RemotePlayer {
     if (heroKey === 'reinhardt') {
       modelData = buildReinhardtModel(this.modelGroup);
       this.shieldMesh = modelData.shieldMesh;
+    } else if (heroKey === 'mccree') {
+      modelData = buildMcCreeModel(this.modelGroup);
     } else if (heroKey === 'genji') {
       modelData = buildGenjiModel(this.modelGroup);
     } else {
@@ -122,7 +125,7 @@ export class RemotePlayer {
     });
 
     if (this.billboardMesh) {
-      this.billboardMesh.position.y = (heroKey === 'reinhardt') ? 2.85 : (heroKey === 'genji' ? 2.25 : 2.1);
+      this.billboardMesh.position.y = (heroKey === 'reinhardt') ? 2.85 : ((heroKey === 'genji' || heroKey === 'mccree') ? 2.30 : 2.1);
     }
   }
 
@@ -222,6 +225,10 @@ export class RemotePlayer {
     return this.hp <= 0;
   }
 
+  takeStun(duration = 1.2) {
+    this.flashTimer = Math.max(this.flashTimer || 0, duration);
+  }
+
   setShieldActive(active) {
     this.isShieldActive = active;
     if (this.shieldMesh) {
@@ -236,7 +243,7 @@ export class RemotePlayer {
     this.hp = maxHp;
     this.trailingHp = maxHp;
     this.buildModel(newHeroKey);
-    this.billboardMesh.position.y = (newHeroKey === 'reinhardt') ? 2.85 : (newHeroKey === 'genji' ? 2.25 : 2.1);
+    this.billboardMesh.position.y = (newHeroKey === 'reinhardt') ? 2.85 : ((newHeroKey === 'genji' || newHeroKey === 'mccree') ? 2.30 : 2.1);
     this.updateHUDCanvas();
   }
 
@@ -272,6 +279,10 @@ export class RemotePlayer {
     this.hammerSwingTimer = 0.45;
   }
 
+  triggerRoll() {
+    this.rollTimer = 0.35;
+  }
+
   // ==========================================================================
   // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp, Walking Motion)
   // ==========================================================================
@@ -303,6 +314,17 @@ export class RemotePlayer {
           this.animNodes.weapon.rotation.z = Math.sin(progress * Math.PI) * 1.5;
           this.animNodes.weapon.rotation.x = Math.cos(progress * Math.PI) * 0.8;
         }
+      }
+
+      // Procedural combat roll tumble for remote McCree
+      if (this.heroKey === 'mccree' && this.rollTimer > 0) {
+        this.rollTimer -= dt;
+        const progress = 1 - (this.rollTimer / 0.35);
+        if (this.animNodes.root) {
+          this.animNodes.root.rotation.x = progress * Math.PI * 2;
+        }
+      } else if (this.animNodes && this.animNodes.root && this.heroKey === 'mccree') {
+        this.animNodes.root.rotation.x = 0;
       }
     }
     this.lastPos.copy(this.group.position);

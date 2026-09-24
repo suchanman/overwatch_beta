@@ -26,8 +26,9 @@ import { RemotePlayer } from './entities/RemotePlayer.js';
 import { Tracer } from './heroes/Tracer.js';
 import { Genji } from './heroes/Genji.js';
 import { Reinhardt } from './heroes/Reinhardt.js';
+import { McCree } from './heroes/McCree.js';
 import { UIManager } from './ui/UIManager.js';
-import { buildReinhardtModel, buildTracerModel, buildGenjiModel, animateHeroWalk } from './entities/HeroModels.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel, buildMcCreeModel, animateHeroWalk } from './entities/HeroModels.js';
 
 class OverwatchGame {
   constructor() {
@@ -85,7 +86,24 @@ class OverwatchGame {
     this.heroes = {
       tracer: new Tracer(),
       genji: new Genji(),
-      reinhardt: new Reinhardt()
+      reinhardt: new Reinhardt(),
+      mccree: new McCree()
+    };
+    this.heroes.mccree.onFanShotFired = (start, end) => {
+      if (this.network && this.network.isConnected) {
+        this.network.sendAction('mccree_fan_shot', {
+          start: [start.x, start.y, start.z],
+          end: [end.x, end.y, end.z]
+        });
+      }
+    };
+    this.heroes.mccree.onDeadeyeShotFired = (start, end) => {
+      if (this.network && this.network.isConnected) {
+        this.network.sendAction('deadeye_shot', {
+          start: [start.x, start.y, start.z],
+          end: [end.x, end.y, end.z]
+        });
+      }
     };
     this.currentHeroKey = 'tracer';
     this.currentHero = this.heroes.tracer;
@@ -199,6 +217,11 @@ class OverwatchGame {
       if (eIcon) eIcon.textContent = '🔥';
       if (altIcon) altIcon.textContent = '🛡️';
       if (altLbl) altLbl.textContent = 'SHIELD';
+    } else if (heroKey === 'mccree') {
+      if (shiftIcon) shiftIcon.textContent = '🔄';
+      if (eIcon) eIcon.textContent = '💥';
+      if (altIcon) altIcon.textContent = '⚡';
+      if (altLbl) altLbl.textContent = 'FAN';
     }
 
     this.updateScoreboard();
@@ -353,6 +376,39 @@ class OverwatchGame {
         this.audio.playGenjiDash();
       } else if (actionType === 'shield_toggle' && rp) {
         rp.setShieldActive(!!data.active);
+      } else if (actionType === 'mccree_shot' && data.start && data.end) {
+        this.projectiles.addBulletBeam(
+          new THREE.Vector3(...data.start),
+          new THREE.Vector3(...data.end),
+          0xffaa44
+        );
+        this.audio.playMcCreeShot();
+      } else if (actionType === 'mccree_fan_shot' && data.start && data.end) {
+        this.projectiles.addBulletBeam(
+          new THREE.Vector3(...data.start),
+          new THREE.Vector3(...data.end),
+          0xffaa44
+        );
+        this.audio.playMcCreeFanShot();
+      } else if (actionType === 'flashbang' && data.origin && data.dir) {
+        const origin = new THREE.Vector3(...data.origin);
+        const dir = new THREE.Vector3(...data.dir);
+        this.projectiles.spawnFlashbang(origin, dir, null, true);
+        this.audio.playFlashbangThrow();
+      } else if (actionType === 'mccree_roll') {
+        if (rp && rp.triggerRoll) {
+          rp.triggerRoll();
+        }
+        this.audio.playMcCreeRoll();
+      } else if (actionType === 'deadeye_activate') {
+        this.audio.playHighNoon();
+      } else if (actionType === 'deadeye_shot' && data.start && data.end) {
+        this.projectiles.addBulletBeam(
+          new THREE.Vector3(...data.start),
+          new THREE.Vector3(...data.end),
+          0xfacc15
+        );
+        this.audio.playDeadeyeShot();
       }
     };
 
@@ -867,7 +923,13 @@ class OverwatchGame {
       currentRotY = 0;
       currentShowcaseHeroKey = heroKey;
 
-      if (heroKey === 'reinhardt') {
+      if (heroKey === 'mccree') {
+        const data = buildMcCreeModel(showcaseGroup);
+        data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
+        if (heroTitle) heroTitle.textContent = '맥크리 (MCCREE)';
+        ringMat.color.setHex(0xd97706);
+      } else if (heroKey === 'reinhardt') {
         const data = buildReinhardtModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
         currentAnimNodes = data.animNodes || null;
@@ -979,7 +1041,7 @@ class OverwatchGame {
           modal.classList.add('hidden');
           requestLock();
         }
-      } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt') {
+      } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt' || action === 'mccree') {
         this.switchHero(action);
         if (this.audio && this.audio.playSelectClick) {
           this.audio.playSelectClick();
@@ -1278,8 +1340,8 @@ class OverwatchGame {
     moveVelocity.addScaledVector(forward, -move.z);
     moveVelocity.addScaledVector(right, move.x);
 
-    // Apply Speed (disable standard movement integration during Charge, Blink, or Swift Strike)
-    if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing) {
+    // Apply Speed (disable standard movement integration during Charge, Blink, Swift Strike, or Combat Roll)
+    if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing || this.currentHero.isRolling) {
       moveVelocity.set(0, 0, 0);
     }
 
@@ -1287,6 +1349,10 @@ class OverwatchGame {
     let moveSpeed = this.currentHero.speed;
     if (this.currentHero.name === 'REINHARDT' && this.currentHero.isShieldActive) {
       moveSpeed *= 0.5;
+    }
+    // MCCREE: Movement speed reduced during Deadeye
+    if (this.currentHero.name === 'MCCREE' && this.currentHero.isDeadeyeActive) {
+      moveSpeed *= 0.35;
     }
     this.playerPos.addScaledVector(moveVelocity, moveSpeed * dt);
 
@@ -1388,12 +1454,14 @@ class OverwatchGame {
             // Hit solid wall/obstacle! Spawn impact sparks
             beamEnd = wallHit.point.clone();
             if (this.projectiles && typeof this.projectiles.spawnHitSparks === 'function') {
-              this.projectiles.spawnHitSparks(wallHit.point, new THREE.Vector3(0, 1, 0), 0x00f0ff);
+              this.projectiles.spawnHitSparks(wallHit.point, new THREE.Vector3(0, 1, 0), this.currentHero.name === 'MCCREE' ? 0xffaa33 : 0x00f0ff);
             }
           }
 
           // Broadcast primary fire beam to other players
-          this.network.sendAction('primary_fire_beam', {
+          const isMcCree = this.currentHero.name === 'MCCREE';
+          const beamAction = isMcCree ? 'mccree_shot' : 'primary_fire_beam';
+          this.network.sendAction(beamAction, {
             start: [rayOrigin.x, rayOrigin.y - 0.2, rayOrigin.z],
             end: [beamEnd.x, beamEnd.y, beamEnd.z]
           });
@@ -1469,6 +1537,52 @@ class OverwatchGame {
           this.network.sendAction('shield_toggle', { active: true });
         }
         this.currentHero.setShieldActive(true, this.audio);
+      } else if (this.currentHero.name === 'MCCREE') {
+        this.input.keys.secondaryFire = false; // Trigger Fan the Hammer burst
+        const hitResult = this.currentHero.secondaryFire(
+          this.camera,
+          this.scene,
+          this.projectiles,
+          this.audio,
+          this.shaker,
+          this.map
+        );
+        if (hitResult && hitResult.raycaster) {
+          let wallHit = hitResult.wallHit;
+          if (!wallHit && this.map && typeof this.map.raycastColliders === 'function') {
+            wallHit = this.map.raycastColliders(hitResult.raycaster.ray, 45);
+          }
+          const wallDist = (wallHit && wallHit.hit) ? wallHit.distance : Infinity;
+          const hits = [];
+          allTargets.forEach((target) => {
+            if (target.isDead) return;
+            const targetMeshes = target.hitMeshes || [target.bodyMesh, target.headMesh];
+            const intersects = hitResult.raycaster.intersectObjects(targetMeshes, true);
+            if (intersects.length > 0 && intersects[0].distance < wallDist) {
+              hits.push({ target, intersect: intersects[0] });
+            }
+          });
+          const rayOrigin = this.camera.position.clone();
+          const rayDir = hitResult.raycaster.ray.direction.clone();
+          let beamEnd = rayOrigin.clone().addScaledVector(rayDir, Math.min(30, wallDist));
+          if (hits.length > 0) {
+            hits.sort((a, b) => a.intersect.distance - b.intersect.distance);
+            if (hits[0].intersect.point) beamEnd = hits[0].intersect.point.clone();
+            const target = hits[0].target;
+            const finalBlow = target.takeDamage(hitResult.damage, false, hitResult.raycaster.ray.direction);
+            if (target.id) this.network.sendHit(target.id, hitResult.damage, false);
+            this.handleCombatHit(target, hitResult.damage, false, finalBlow);
+          } else if (wallHit && wallHit.hit && wallHit.point) {
+            beamEnd = wallHit.point.clone();
+            if (this.projectiles && typeof this.projectiles.spawnHitSparks === 'function') {
+              this.projectiles.spawnHitSparks(wallHit.point, new THREE.Vector3(0, 1, 0), 0xffaa33);
+            }
+          }
+          this.network.sendAction('mccree_fan_shot', {
+            start: [rayOrigin.x, rayOrigin.y - 0.2, rayOrigin.z],
+            end: [beamEnd.x, beamEnd.y, beamEnd.z]
+          });
+        }
       } else if (this.currentHero.secondaryFire) {
         this.currentHero.secondaryFire(
           this.camera,
@@ -1520,6 +1634,8 @@ class OverwatchGame {
           from: [prevPos.x, prevPos.y, prevPos.z],
           to: [this.playerPos.x, this.playerPos.y, this.playerPos.z]
         });
+      } else if (this.currentHero.name === 'MCCREE') {
+        this.network.sendAction('mccree_roll', {});
       }
     }
 
@@ -1539,7 +1655,7 @@ class OverwatchGame {
     // Ultimate (Q)
     if (this.input.keys.q) {
       this.input.keys.q = false;
-      this.currentHero.useUltimate(
+      const success = this.currentHero.useUltimate(
         this.camera,
         this.projectiles,
         this.audio,
@@ -1553,6 +1669,9 @@ class OverwatchGame {
           this.handleCombatHit(target, dmg, head, kill);
         }
       );
+      if (success && this.currentHero.name === 'MCCREE') {
+        this.network.sendAction('deadeye_activate', {});
+      }
     }
 
     // Reload (R)

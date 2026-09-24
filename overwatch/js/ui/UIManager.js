@@ -131,6 +131,10 @@ export class UIManager {
   getHeroWeaponIcon(heroOrType) {
     if (!heroOrType) return '⚔️';
     const key = String(heroOrType).toLowerCase();
+    if (key.includes('mccree') || key.includes('cassidy')) return '🤠';
+    if (key.includes('flashbang')) return '💥';
+    if (key.includes('roll')) return '🔄';
+    if (key.includes('deadeye') || key.includes('highnoon')) return '☀️';
     if (key.includes('tracer') || key.includes('pistol')) return '🔫';
     if (key.includes('genji') || key.includes('blade') || key.includes('shuriken')) return '🗡️';
     if (key.includes('reinhardt') || key.includes('hammer')) return '🔨';
@@ -245,6 +249,18 @@ export class UIManager {
     this.heroNameLabel.textContent = hero.name;
     this.heroPortraitEl.className = `hero-portrait portrait-${hero.name.toLowerCase()}`;
 
+    if (this._lastHeroName !== hero.name) {
+      this._lastHeroName = hero.name;
+      const a1Icon = document.querySelector('#ability-1-icon .icon-text');
+      const a2Icon = document.querySelector('#ability-2-icon .icon-text');
+      if (a1Icon && a2Icon) {
+        if (hero.name === 'TRACER') { a1Icon.textContent = '⚡'; a2Icon.textContent = '⏪'; }
+        else if (hero.name === 'GENJI') { a1Icon.textContent = '🗡️'; a2Icon.textContent = '🛡️'; }
+        else if (hero.name === 'REINHARDT') { a1Icon.textContent = '🚀'; a2Icon.textContent = '🔥'; }
+        else if (hero.name === 'MCCREE') { a1Icon.textContent = '🔄'; a2Icon.textContent = '💥'; }
+      }
+    }
+
     // 2. Numeric Health & Trailing Health Bar (skill.md 3.4)
     this.hpCurrentEl.textContent = Math.ceil(hero.hp);
     this.hpMaxEl.textContent = hero.maxHp;
@@ -325,7 +341,7 @@ export class UIManager {
       if (hero.isReloading) {
         this.reloadPrompt.textContent = 'RELOADING...';
         this.reloadPrompt.classList.remove('hidden');
-      } else if (hero.ammo <= 8) {
+      } else if (hero.ammo <= (hero.name === 'MCCREE' ? 2 : 8)) {
         this.reloadPrompt.textContent = '[R] RELOAD';
         this.reloadPrompt.classList.remove('hidden');
       } else {

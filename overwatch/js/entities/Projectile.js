@@ -356,6 +356,64 @@ export class ProjectileManager {
     });
   }
 
+  // 6. McCree Flashbang Grenade (Tactical stun projectile with arcing physics & concussion detonation)
+  spawnFlashbang(origin, direction, hero, isRemote = false) {
+    const fbGroup = new THREE.Group();
+
+    // Cylindrical grenade body
+    const bodyGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.22, 12);
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x425734 }); // Olive tactical
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    fbGroup.add(bodyMesh);
+
+    // Silver cap
+    const capGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12);
+    const capMat = new THREE.MeshBasicMaterial({ color: 0xd4d4d8 });
+    const capMesh = new THREE.Mesh(capGeo, capMat);
+    capMesh.position.y = 0.12;
+    fbGroup.add(capMesh);
+
+    // Blinking spark fuse indicator
+    const fuseGeo = new THREE.SphereGeometry(0.045, 8, 8);
+    const fuseMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const fuseMesh = new THREE.Mesh(fuseGeo, fuseMat);
+    fuseMesh.position.y = 0.16;
+    fbGroup.add(fuseMesh);
+
+    // Trailing golden glow aura
+    const glowGeo = new THREE.SphereGeometry(0.18, 8, 8);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
+      transparent: true,
+      opacity: 0.45
+    });
+    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+    fbGroup.add(glowMesh);
+
+    fbGroup.position.copy(origin);
+
+    this.scene.add(fbGroup);
+    this.projectiles.push({
+      type: 'flashbang',
+      mesh: fbGroup,
+      fuseMesh,
+      velocity: direction.clone().multiplyScalar(26),
+      gravity: -16,
+      life: 0.85, // Max fuse time before airburst
+      damage: 75,
+      hero,
+      isRemote: !!isRemote,
+      lastPos: origin.clone()
+    });
+
+    if (!isRemote && this.onProjectileSpawned) {
+      this.onProjectileSpawned('flashbang', {
+        origin: [origin.x, origin.y, origin.z],
+        dir: [direction.x, direction.y, direction.z]
+      });
+    }
+  }
+
   // ==========================================================================
   // TICK UPDATE LOOP (Motion Streaks, Particles, Swept Collision & Replication)
   // ==========================================================================
@@ -671,6 +729,133 @@ export class ProjectileManager {
                 const dmg = Math.floor(p.damage * falloff);
                 const finalBlow = bot.takeDamage(dmg, false, new THREE.Vector3(0, 1, 0));
                 onHitCallback(bot, dmg, false, finalBlow);
+              }
+            }
+          }
+
+          this.scene.remove(p.mesh);
+          p.mesh.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
+          this.projectiles.splice(i, 1);
+        }
+
+      // --- MCCREE FLASHBANG ---
+      } else if (p.type === 'flashbang') {
+        p.life -= dt;
+        const prevPos = p.mesh.position.clone();
+        p.velocity.y += p.gravity * dt;
+        p.mesh.position.addScaledVector(p.velocity, dt);
+
+        // Dynamic tumble rotation
+        p.mesh.rotation.x += 18 * dt;
+        p.mesh.rotation.z += 12 * dt;
+
+        // Fuse light blinking
+        if (p.fuseMesh) {
+          p.fuseMesh.material.color.setHex((Math.sin(Date.now() * 0.04) > 0) ? 0xff0044 : 0xfacc15);
+        }
+
+        let exploded = false;
+
+        // 1. Wall / Ground Collision Check (DO NOT PENETRATE WALLS)
+        if (map && typeof map.checkProjectileHit === 'function') {
+          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.20);
+          if (wallHit.hit) {
+            exploded = true;
+            p.mesh.position.copy(wallHit.point || prevPos);
+          }
+        }
+
+        // Floor collision
+        if (!exploded && p.mesh.position.y <= 0.15) {
+          exploded = true;
+          p.mesh.position.y = 0.15;
+        }
+
+        // 2. Direct Target Proximity Check
+        if (!exploded) {
+          for (const bot of bots) {
+            if (bot.isDead) continue;
+            const bPos = bot.group.position;
+            const dist = p.mesh.position.distanceTo(bPos.clone().add(new THREE.Vector3(0, 1.1, 0)));
+            if (dist < 1.6) {
+              exploded = true;
+              break;
+            }
+          }
+        }
+
+        // 3. Remote Player Deflect / Proximity (if remote flashbang)
+        if (!exploded && p.isRemote && playerContext && playerContext.playerPos && playerContext.currentHero) {
+          const pPos = playerContext.playerPos;
+          const pHero = playerContext.currentHero;
+          const pCam = playerContext.camera;
+          const dist = p.mesh.position.distanceTo(pPos);
+
+          if (dist < 1.8) {
+            if (pHero.name === 'GENJI' && pHero.isDeflecting) {
+              p.isRemote = false; // Deflected!
+              const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(pCam.quaternion);
+              p.velocity.copy(forward).multiplyScalar(26);
+              if (playerContext.audio) playerContext.audio.playGenjiDeflect();
+              continue;
+            }
+            exploded = true;
+          }
+        }
+
+        if (p.life <= 0) {
+          exploded = true;
+        }
+
+        if (exploded) {
+          // DETONATE FLASHBANG!
+          const detPos = p.mesh.position.clone();
+          this.spawnHitSparks(detPos, new THREE.Vector3(0, 1, 0), 0xfde047, 24);
+          this.spawnHitSparks(detPos, new THREE.Vector3(0, 1, 0), 0xffffff, 16);
+
+          // Audio
+          if (playerContext && playerContext.audio) {
+            playerContext.audio.playFlashbangExplode();
+          }
+
+          // Camera shake
+          if (playerContext && playerContext.shaker) {
+            const distToPlayer = playerContext.playerPos ? detPos.distanceTo(playerContext.playerPos) : 20;
+            if (distToPlayer < 8.0) {
+              playerContext.shaker.addTrauma(Math.max(0.1, 0.45 * (1 - distToPlayer / 8.0)));
+            }
+          }
+
+          // Radial Damage & Stun (only calculated by shooter client)
+          if (!p.isRemote) {
+            for (const bot of bots) {
+              if (bot.isDead) continue;
+              const targetCenter = bot.group.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+              const dist = detPos.distanceTo(targetCenter);
+              if (dist <= 4.5) {
+                // Check Line of Sight against walls (DO NOT HIT THROUGH WALLS)
+                let wallBlocked = false;
+                if (map && typeof map.raycastColliders === 'function') {
+                  const toTarget = targetCenter.clone().sub(detPos).normalize();
+                  const ray = new THREE.Ray(detPos, toTarget);
+                  const hit = map.raycastColliders(ray, dist);
+                  if (hit && hit.hit && hit.distance < dist - 0.2) {
+                    wallBlocked = true;
+                  }
+                }
+
+                if (!wallBlocked) {
+                  const falloff = 1 - dist / 4.5;
+                  const dmg = Math.floor(p.damage * falloff);
+                  const finalBlow = bot.takeDamage(dmg, false, new THREE.Vector3(0, 1, 0));
+                  if (typeof bot.takeStun === 'function') {
+                    bot.takeStun(1.2);
+                  }
+                  onHitCallback(bot, dmg, false, finalBlow);
+                }
               }
             }
           }

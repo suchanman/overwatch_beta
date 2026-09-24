@@ -454,6 +454,228 @@ export class AudioSynth {
   }
 
   // ==========================================================================
+  // MCCREE (CASSIDY) WEAPON & ABILITY AUDIO SYNTHESIS
+  // ==========================================================================
+  playMcCreeShot() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Loud .45 caliber gun crack (high transient)
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(950, now);
+    osc1.frequency.exponentialRampToValueAtTime(80, now + 0.16);
+    gain1.gain.setValueAtTime(0.65, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 0.18);
+
+    // 2. Heavy low-end gunpowder bass thud
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(160, now);
+    osc2.frequency.exponentialRampToValueAtTime(32, now + 0.22);
+    gain2.gain.setValueAtTime(0.7, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain);
+    osc2.start(now);
+    osc2.stop(now + 0.25);
+  }
+
+  playMcCreeFanShot() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Snappy rapid hammer fan gunshot
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(1100, now);
+    osc1.frequency.exponentialRampToValueAtTime(120, now + 0.09);
+    gain1.gain.setValueAtTime(0.55, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 0.10);
+
+    // Metallic hammer slap click
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(2400, now);
+    osc2.frequency.exponentialRampToValueAtTime(600, now + 0.04);
+    gain2.gain.setValueAtTime(0.35, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain);
+    osc2.start(now);
+    osc2.stop(now + 0.05);
+  }
+
+  playMcCreeRoll() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Aerodynamic tumble swoosh
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.32);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.35);
+
+    // 2. Silver spurs jingle chime
+    const spur = this.ctx.createOscillator();
+    const spurGain = this.ctx.createGain();
+    spur.type = 'sine';
+    spur.frequency.setValueAtTime(3200, now + 0.08);
+    spur.frequency.exponentialRampToValueAtTime(1800, now + 0.22);
+    spurGain.gain.setValueAtTime(0.001, now);
+    spurGain.gain.setValueAtTime(0.18, now + 0.08);
+    spurGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    spur.connect(spurGain);
+    spurGain.connect(this.masterGain);
+    spur.start(now);
+    spur.stop(now + 0.25);
+  }
+
+  playFlashbangThrow() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(650, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.18);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  playFlashbangExplode() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Concussive explosive burst
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(360, now);
+    osc1.frequency.exponentialRampToValueAtTime(45, now + 0.25);
+    gain1.gain.setValueAtTime(0.65, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    // 2. High-pitched acoustic disorientation ringing tone (authentic flashbang stun ringing)
+    const ringOsc = this.ctx.createOscillator();
+    const ringGain = this.ctx.createGain();
+    ringOsc.type = 'sine';
+    ringOsc.frequency.setValueAtTime(2600, now);
+    ringGain.gain.setValueAtTime(0.28, now);
+    ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    ringOsc.connect(ringGain);
+    ringGain.connect(this.masterGain);
+    ringOsc.start(now);
+    ringOsc.stop(now + 0.7);
+  }
+
+  playHighNoon() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Western whistle / tumbleweed chord
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(440, now);
+    osc1.frequency.exponentialRampToValueAtTime(660, now + 0.4);
+    osc1.frequency.exponentialRampToValueAtTime(330, now + 1.2);
+    gain1.gain.setValueAtTime(0.35, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 1.4);
+
+    // 2. Distant church bell / clock chime
+    const bell = this.ctx.createOscillator();
+    const bellGain = this.ctx.createGain();
+    bell.type = 'triangle';
+    bell.frequency.setValueAtTime(220, now + 0.2);
+    bellGain.gain.setValueAtTime(0.4, now + 0.2);
+    bellGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+    bell.connect(bellGain);
+    bellGain.connect(this.masterGain);
+    bell.start(now + 0.2);
+    bell.stop(now + 1.8);
+
+    this.announce("It's High Noon...");
+  }
+
+  playDeadeyeLock() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.setValueAtTime(1800, now + 0.03);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.08);
+  }
+
+  playDeadeyeShot() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Cataclysmic execution blast
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(1200, now);
+    osc1.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+    gain1.gain.setValueAtTime(0.85, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 0.45);
+
+    // Echo tail
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(110, now);
+    gain2.gain.setValueAtTime(0.6, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain);
+    osc2.start(now);
+    osc2.stop(now + 0.6);
+  }
+
+  // ==========================================================================
   // WEB SPEECH API ANNOUNCER (Double Kill, Triple Kill, Team Kill, Victory!)
   // ==========================================================================
   announce(text) {
