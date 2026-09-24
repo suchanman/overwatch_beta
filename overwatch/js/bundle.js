@@ -7602,6 +7602,8 @@ class OverwatchGame {
             start: [rayOrigin.x, rayOrigin.y - 0.2, rayOrigin.z],
             end: [beamEnd.x, beamEnd.y, beamEnd.z]
           });
+
+          if (hits.length > 0) {
             const target = hits[0].target;
             const hitObject = hits[0].intersect.object;
 
