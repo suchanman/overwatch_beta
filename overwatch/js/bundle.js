@@ -6789,6 +6789,58 @@ class OverwatchGame {
 
     this.initLobbyHeroShowcase();
 
+    // Universal instant touch & click binder for zero-latency mobile responsiveness
+    const bindFastTap = (element, callback) => {
+      if (!element) return;
+      let startX = 0;
+      let startY = 0;
+      let isTouchDown = false;
+      let hasScrolled = false;
+      let lastTriggerTime = 0;
+
+      const trigger = (e) => {
+        const now = Date.now();
+        if (now - lastTriggerTime < 300) return; // Debounce duplicate events
+        lastTriggerTime = now;
+        try {
+          callback(e);
+        } catch (err) {
+          console.error('[FastTap error]:', err);
+        }
+      };
+
+      element.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length > 0) {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          isTouchDown = true;
+          hasScrolled = false;
+        }
+      }, { passive: true });
+
+      element.addEventListener('touchmove', (e) => {
+        if (isTouchDown && e.touches && e.touches.length > 0) {
+          const dx = Math.abs(e.touches[0].clientX - startX);
+          const dy = Math.abs(e.touches[0].clientY - startY);
+          if (dx > 10 || dy > 10) {
+            hasScrolled = true;
+          }
+        }
+      }, { passive: true });
+
+      element.addEventListener('touchend', (e) => {
+        if (isTouchDown && !hasScrolled) {
+          isTouchDown = false;
+          trigger(e);
+        }
+        isTouchDown = false;
+      }, { passive: true });
+
+      element.addEventListener('click', (e) => {
+        trigger(e);
+      });
+    };
+
     heroCards.forEach((card) => {
       const handleSelect = (e) => {
         if (e && e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
@@ -6807,62 +6859,78 @@ class OverwatchGame {
         }
       };
 
-      card.addEventListener('click', handleSelect);
+      bindFastTap(card, handleSelect);
       card.addEventListener('keydown', handleSelect);
     });
 
     let isStarting = false;
-    const startGame = (e) => {
-      if (e) e.preventDefault();
+    const startGame = () => {
       if (isStarting) return;
       isStarting = true;
 
-      if (this.audio) {
-        if (this.audio.playBattleStart) this.audio.playBattleStart();
-        this.audio.unlock();
-      }
+      try {
+        if (this.audio) {
+          if (this.audio.playBattleStart) this.audio.playBattleStart();
+          this.audio.unlock();
+        }
 
-      if (this.stopLobbyShowcase) {
-        this.stopLobbyShowcase();
-      }
+        if (this.stopLobbyShowcase) {
+          this.stopLobbyShowcase();
+        }
 
-      startOverlay.style.display = 'none';
-      this.ui.showHUD();
+        startOverlay.style.display = 'none';
+        document.body.classList.add('in-game');
+        this.ui.showHUD();
 
-      // Read nickname & custom server url if provided
-      if (nickInput && nickInput.value.trim()) {
-        this.playerNickname = nickInput.value.trim().slice(0, 16);
-      }
-      const customUrl = serverInput && serverInput.value.trim() ? serverInput.value.trim() : null;
+        // Read nickname & custom server url if provided
+        if (nickInput && nickInput.value.trim()) {
+          this.playerNickname = nickInput.value.trim().slice(0, 16);
+        }
+        const customUrl = serverInput && serverInput.value.trim() ? serverInput.value.trim() : null;
 
-      // Connect to WebSocket Multiplayer Server
-      this.network.connect(customUrl, this.playerNickname, this.currentHeroKey);
+        // Connect to WebSocket Multiplayer Server
+        this.network.connect(customUrl, this.playerNickname, this.currentHeroKey);
 
-      // Mobile landscape orientation request & fullscreen
-      if (screen.orientation && typeof screen.orientation.lock === 'function') {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
-      if (this.isTouchDevice && document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
+        // Mobile landscape orientation request & fullscreen
+        if (screen.orientation && typeof screen.orientation.lock === 'function') {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+        if (this.isTouchDevice && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
 
-      // On desktop, request pointer lock; catch promise rejection cleanly
-      if (!this.isTouchDevice && this.renderer && this.renderer.domElement) {
-        try {
-          const lockPromise = this.renderer.domElement.requestPointerLock();
-          if (lockPromise && typeof lockPromise.catch === 'function') {
-            lockPromise.catch(() => {});
-          }
-        } catch (_) {}
+        // On desktop, request pointer lock; catch promise rejection cleanly
+        if (!this.isTouchDevice && this.renderer && this.renderer.domElement) {
+          try {
+            const lockPromise = this.renderer.domElement.requestPointerLock();
+            if (lockPromise && typeof lockPromise.catch === 'function') {
+              lockPromise.catch(() => {});
+            }
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.error('Error starting game:', err);
+        isStarting = false;
+        // Ensure UI transitions regardless of auxiliary API failures
+        startOverlay.style.display = 'none';
+        this.ui.showHUD();
       }
     };
 
-    btnStart.addEventListener('click', startGame);
+    bindFastTap(btnStart, startGame);
 
     const btnCopyInvite = document.getElementById('btn-copy-invite');
     if (btnCopyInvite) {
-      btnCopyInvite.addEventListener('click', () => {
+      bindFastTap(btnCopyInvite, () => {
         this.copyInviteLink(btnCopyInvite);
+      });
+    }
+
+    // Allow tapping rotate overlay to dismiss and proceed
+    const rotateOverlay = document.getElementById('rotate-device-overlay');
+    if (rotateOverlay) {
+      bindFastTap(rotateOverlay, () => {
+        rotateOverlay.style.display = 'none';
       });
     }
   }
