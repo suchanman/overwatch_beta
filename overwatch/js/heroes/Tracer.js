@@ -166,7 +166,7 @@ export class Tracer extends HeroBase {
     return group;
   }
 
-  primaryFire(camera, scene, projectileManager, audio, shaker) {
+  primaryFire(camera, scene, projectileManager, audio, shaker, map) {
     if (this.ammo <= 0) {
       this.startReload(audio);
       return null;
@@ -199,12 +199,21 @@ export class Tracer extends HeroBase {
 
     raycaster.set(camera.position, forward);
 
-    // Bullet laser tracer beam
+    // Bullet laser tracer beam clipped to walls
     const origin = camera.position.clone().add(forward.clone().multiplyScalar(0.5));
-    const hitTargetEnd = origin.clone().add(forward.clone().multiplyScalar(40));
+    let hitTargetEnd = origin.clone().add(forward.clone().multiplyScalar(40));
+
+    let wallHit = null;
+    if (map && typeof map.raycastColliders === 'function') {
+      wallHit = map.raycastColliders(raycaster.ray, 45);
+      if (wallHit.hit && wallHit.point) {
+        hitTargetEnd = wallHit.point.clone();
+      }
+    }
+
     projectileManager.addBulletBeam(origin, hitTargetEnd, 0x00f0ff);
 
-    return { raycaster, damage: 9, isHeadshotMultiplier: 2.0 };
+    return { raycaster, damage: 9, isHeadshotMultiplier: 2.0, wallHit, hitTargetEnd };
   }
 
   secondaryFire(camera, scene, projectileManager, audio, shaker, bots, onHitCallback) {

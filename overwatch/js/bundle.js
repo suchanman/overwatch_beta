@@ -935,26 +935,51 @@ class InputManager {
     // ------------------------------------------------------------------------
     // 3. TOP BAR UTILITY BUTTONS (HERO SWITCH & SCOREBOARD)
     // ------------------------------------------------------------------------
-    const btnSwitch = document.getElementById('btn-touch-switch');
-    if (btnSwitch) {
-      btnSwitch.addEventListener('touchstart', (e) => {
+    // ------------------------------------------------------------------------
+    // 3. TOP BAR UTILITY BUTTONS (HERO SWITCH & SCOREBOARD)
+    // ------------------------------------------------------------------------
+    const triggerHeroSwitch = (e) => {
+      if (e) {
         e.preventDefault();
         e.stopPropagation();
-        if (this.onHeroSwitchRequested) {
-          this.onHeroSwitchRequested('toggle_modal');
-          if ('vibrate' in navigator) navigator.vibrate(15);
-        }
-      }, { passive: false });
+      }
+      if (this.onHeroSwitchRequested) {
+        this.onHeroSwitchRequested('toggle_modal');
+        if ('vibrate' in navigator) navigator.vibrate(15);
+      }
+    };
+
+    const btnSwitch = document.getElementById('btn-touch-switch');
+    if (btnSwitch) {
+      btnSwitch.addEventListener('touchstart', triggerHeroSwitch, { passive: false });
+      btnSwitch.addEventListener('click', triggerHeroSwitch);
     }
+
+    const btnDesktopSwitch = document.getElementById('btn-desktop-hero-switch');
+    if (btnDesktopSwitch) {
+      btnDesktopSwitch.addEventListener('click', triggerHeroSwitch);
+    }
+
+    const portraitFrame = document.querySelector('.hero-portrait-frame');
+    if (portraitFrame) {
+      portraitFrame.addEventListener('click', triggerHeroSwitch);
+      portraitFrame.style.cursor = 'pointer';
+      portraitFrame.setAttribute('title', '클릭하여 영웅 변경');
+    }
+
+    const triggerScoreboard = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.keys.tab = !this.keys.tab;
+      if ('vibrate' in navigator) navigator.vibrate(15);
+    };
 
     const btnScoreboard = document.getElementById('btn-touch-scoreboard');
     if (btnScoreboard) {
-      btnScoreboard.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.keys.tab = !this.keys.tab;
-        if ('vibrate' in navigator) navigator.vibrate(15);
-      }, { passive: false });
+      btnScoreboard.addEventListener('touchstart', triggerScoreboard, { passive: false });
+      btnScoreboard.addEventListener('click', triggerScoreboard);
     }
   }
 
@@ -1659,8 +1684,9 @@ class UIManager {
 /**
  * ============================================================================
  * OVERWATCH 2 : ROUTE 66 (DEADLOCK GORGE) MAP BUILDER
- * - Authentic Route 66 Desert Aesthetics (Big Earl's Diner, Gas Station, Payload)
- * - Canyon Rock Walls, Derailment Train Cars, Railroad Tracks & Cactus
+ * - Authentic Deadlock Gorge Desert Map Implementation
+ * - Big Earl's Diner, Gas Station, Payload, Crashed Train & Steel Platform
+ * - Dynamic Strata Cliffs & Hoodoo Rock Pillars
  * - Full 3D Multi-Level Collision System (Roofs, Platforms, Stepping Crates)
  * - Distributed Health Packs (Mega 250 HP & Mini 75 HP) with Respawns
  * ============================================================================
@@ -1671,22 +1697,23 @@ class MapBuilder {
     this.healthPacks = [];
     this.colliders = []; // Solid 3D collision registry
 
-    this.colors = {
-      sky: 0x8cbbe2,
-      ground: 0xc49a71, // Rich desert sand
-      road: 0x4f4f4f,
-      rock: 0xc86a41,
-      rockDark: 0x9b4226,
-      dinerWall: 0xe0d6b8,
-      dinerRoof: 0x826d56,
-      garageBlue: 0x48647a,
-      trainRed: 0xb53535,
-      trainSilver: 0xb0b0b0,
-      dinerAwning: 0x3d858f,
-      signYellow: 0xf5c851,
-      signRed: 0xc84b31,
-      billboard: 0x5a9a8f,
-      wood: 0x6e5237
+    this.palette = {
+      sky: 0x88c2f0,
+      fog: 0xdca67a,
+      rockBase: 0xba5b3a,
+      rockDark: 0x8e3b24,
+      rockHighlight: 0xdb7752,
+      sand: 0xdeb887,
+      asphalt: 0x3d3b38,
+      dinerWall: 0xf2eedb,
+      dinerTrim: 0xa8412b,
+      dinerAwning: 0x1f7a8c,
+      woodCrate: 0x825330,
+      trainRed: 0xa82d2d,
+      trainSilver: 0xc4ccd3,
+      payloadBlue: 0x2b6cb0,
+      garageBlue: 0x4a6b8c,
+      metalPlatform: 0xa0aec0
     };
 
     this.buildLighting();
@@ -1696,105 +1723,106 @@ class MapBuilder {
 
   buildLighting() {
     // 1. Scene sky & warm desert atmospheric fog
-    this.scene.background = new THREE.Color(this.colors.sky);
-    this.scene.fog = new THREE.FogExp2(this.colors.sky, 0.005);
+    this.scene.background = new THREE.Color(this.palette.sky);
+    this.scene.fog = new THREE.FogExp2(this.palette.fog, 0.0055);
 
     // 2. Warm Desert Hemisphere Light
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xaa7744, 0.85);
+    const hemiLight = new THREE.HemisphereLight(0xfff1dc, 0x965a38, 0.65);
     hemiLight.position.set(0, 60, 0);
     this.scene.add(hemiLight);
 
     // 3. Bright Sun (Directional Light with sharp shadows)
-    const dirLight = new THREE.DirectionalLight(0xfffae6, 1.25);
-    dirLight.position.set(-50, 100, 50);
-    dirLight.castShadow = true;
-    dirLight.shadow.camera.top = 100;
-    dirLight.shadow.camera.bottom = -100;
-    dirLight.shadow.camera.left = -100;
-    dirLight.shadow.camera.right = 100;
-    dirLight.shadow.camera.near = 0.1;
-    dirLight.shadow.camera.far = 300;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.bias = -0.0005;
-    this.scene.add(dirLight);
+    const sun = new THREE.DirectionalLight(0xffeed6, 1.45);
+    sun.position.set(90, 140, 70);
+    sun.castShadow = true;
+    sun.shadow.camera.left = -140;
+    sun.shadow.camera.right = 140;
+    sun.shadow.camera.top = 140;
+    sun.shadow.camera.bottom = -140;
+    sun.shadow.camera.near = 0.1;
+    sun.shadow.camera.far = 400;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    sun.shadow.bias = -0.0005;
+    this.scene.add(sun);
 
     // 4. Subtle ambient fill
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     this.scene.add(ambientLight);
   }
 
-  // Helper for generating canvas sign texture
-  createSignTexture(text, bgColor, textColor, width, height, fontSize, fontStyle = "bold") {
+  createSignTexture(text, bgColor, textColor, width, height, fontSize) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, width, height);
 
     const lines = text.split('\n');
     ctx.fillStyle = textColor;
-    ctx.font = `${fontStyle} ${fontSize}px sans-serif`;
+    ctx.font = `900 ${fontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    const lineHeight = fontSize * 1.2;
-    const totalHeight = lines.length * lineHeight;
-    let startY = (height - totalHeight) / 2 + (lineHeight / 2);
-
+    const lh = fontSize * 1.2;
+    let startY = (height - (lines.length * lh)) / 2 + (lh / 2);
     lines.forEach(line => {
       ctx.fillText(line, width / 2, startY);
-      startY += lineHeight;
+      startY += lh;
     });
 
     const texture = new THREE.CanvasTexture(canvas);
     return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });
   }
 
-  // Asphalt road texture with tire tracks and Route 66 shield marking
   createRoadTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#4f4f4f';
+    ctx.fillStyle = '#3a3734';
     ctx.fillRect(0, 0, 512, 1024);
-
-    // Tire marks
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-    ctx.fillRect(145, 0, 42, 1024);
-    ctx.fillRect(325, 0, 42, 1024);
-
-    // Center yellow dashes
-    ctx.fillStyle = '#e8c92a';
-    for (let i = 0; i < 1024; i += 100) {
-      ctx.fillRect(246, i, 20, 60);
-    }
+    // Yellow double line
+    ctx.fillStyle = '#f5ab16';
+    ctx.fillRect(244, 0, 8, 1024);
+    ctx.fillRect(260, 0, 8, 1024);
+    // White edge lines
+    ctx.fillStyle = '#dcdcdc';
+    ctx.fillRect(35, 0, 10, 1024);
+    ctx.fillRect(467, 0, 10, 1024);
 
     // Route 66 Shield Emblem
-    ctx.fillStyle = '#ffffff';
+    ctx.save();
+    ctx.translate(256, 320);
+    ctx.scale(0.8, 0.8);
+    ctx.fillStyle = '#f8f9fa';
     ctx.beginPath();
-    ctx.arc(256, 800, 62, 0, Math.PI * 2);
+    ctx.moveTo(0, -90);
+    ctx.bezierCurveTo(45, -90, 85, -85, 95, -50);
+    ctx.bezierCurveTo(95, 30, 65, 80, 0, 105);
+    ctx.bezierCurveTo(-65, 80, -95, 30, -95, -50);
+    ctx.bezierCurveTo(-85, -85, -45, -90, 0, -90);
     ctx.fill();
-    ctx.fillStyle = '#111111';
-    ctx.font = 'bold 72px sans-serif';
+
+    ctx.fillStyle = '#1a202c';
+    ctx.font = '900 32px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText("66", 256, 800);
+    ctx.fillText('ROUTE', 0, -45);
+    ctx.font = '900 85px sans-serif';
+    ctx.fillText('66', 0, 20);
+    ctx.restore();
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 4);
-    return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.85 });
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 3);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
   }
 
   addCollider(mesh, name = 'obstacle', canStandOn = true) {
     mesh.updateMatrixWorld(true);
-    mesh.geometry.computeBoundingBox();
     const box3 = new THREE.Box3();
     box3.setFromObject(mesh);
     this.colliders.push({
@@ -1809,12 +1837,13 @@ class MapBuilder {
     });
   }
 
-  createBox(x, y, z, w, h, d, colorHex, rotX = 0, rotY = 0, rotZ = 0, name = 'box', collide = true) {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.95, flatShading: true });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y + (h / 2), z);
-    mesh.rotation.set(rotX, rotY, rotZ);
+  createBox(x, y, z, w, h, d, colorHex, rx = 0, ry = 0, rz = 0, name = 'box', collide = true) {
+    const mat = (typeof colorHex === 'number')
+      ? new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.9 })
+      : colorHex;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y + h / 2, z);
+    mesh.rotation.set(rx, ry, rz);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.scene.add(mesh);
@@ -1822,12 +1851,13 @@ class MapBuilder {
     return mesh;
   }
 
-  createCylinder(x, y, z, radius, height, colorHex, rotX = 0, rotY = 0, rotZ = 0, name = 'cyl', collide = true) {
-    const geo = new THREE.CylinderGeometry(radius, radius, height, 16);
-    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.85, flatShading: true });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y + (height / 2), z);
-    mesh.rotation.set(rotX, rotY, rotZ);
+  createCylinder(x, y, z, r, h, colorHex, rx = 0, ry = 0, rz = 0, name = 'cyl', collide = true) {
+    const mat = (typeof colorHex === 'number')
+      ? new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.8 })
+      : colorHex;
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat);
+    mesh.position.set(x, y + h / 2, z);
+    mesh.rotation.set(rx, ry, rz);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.scene.add(mesh);
@@ -1835,236 +1865,210 @@ class MapBuilder {
     return mesh;
   }
 
-  createSignBoard(x, y, z, w, h, d, text, bgColor, textColor, rotY = 0, name = 'sign') {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const mat = this.createSignTexture(text, bgColor, textColor, 512, 256, 45);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y + (h / 2), z);
-    mesh.rotation.y = rotY;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.scene.add(mesh);
-    this.addCollider(mesh, name, true);
-    return mesh;
-  }
+  buildStrataCliff(x, y, z, w, h, d, rotY, colorHex, name = 'strata_cliff') {
+    const segX = Math.max(1, Math.floor(w / 6));
+    const segZ = Math.max(1, Math.floor(d / 6));
+    const geo = new THREE.BoxGeometry(w, h, d, segX, Math.floor(h / 5), segZ);
+    const pos = geo.attributes.position;
 
-  buildRockWall(x, y, z, w, h, d, rotY, colorHex, name = 'rock_wall') {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const positions = geo.attributes.position;
-    if (positions) {
-      for (let i = 0; i < positions.count; i++) {
-        positions.setX(i, positions.getX(i) + (Math.random() - 0.5) * 4);
-        positions.setY(i, positions.getY(i) + (Math.random() - 0.5) * 4);
-        positions.setZ(i, positions.getZ(i) + (Math.random() - 0.5) * 4);
+    for (let i = 0; i < pos.count; i++) {
+      let px = pos.getX(i);
+      let py = pos.getY(i);
+      let pz = pos.getZ(i);
+      const strata = Math.sin(py * 1.5) * 2.5;
+      const noise = (Math.random() - 0.5) * 3.5;
+      if (py > -h / 2 + 2) {
+        pos.setX(i, px + (px > 0 ? noise + strata : -noise - strata));
+        pos.setZ(i, pz + (pz > 0 ? noise + strata : -noise - strata));
       }
-      geo.computeVertexNormals();
     }
-    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 1.0, flatShading: true });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y + (h / 2), z);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshStandardMaterial({ color: colorHex, roughness: 1.0, flatShading: true })
+    );
+    mesh.position.set(x, y + h / 2, z);
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.scene.add(mesh);
-    this.addCollider(mesh, name, false);
+
+    // Collision box
+    const col = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, h, d * 0.85));
+    col.position.copy(mesh.position);
+    col.rotation.copy(mesh.rotation);
+    this.addCollider(col, name, false);
   }
 
-  createPayload(x, y, z) {
-    this.createBox(x, y + 1.5, z, 7, 1.5, 12, 0x555555, 0, Math.PI / 12, 0, 'payload_base');
-    this.createBox(x, y + 3, z, 5, 2.5, 9, 0x3a6a8c, 0, Math.PI / 12, 0, 'payload_body');
-    this.createBox(x, y + 5.5, z, 3, 2, 7, 0xeeeeee, 0, Math.PI / 12, 0, 'payload_top');
+  buildHoodoo(x, y, z, baseR, topR, h, colorHex, name = 'hoodoo') {
+    const geo = new THREE.CylinderGeometry(topR, baseR, h, 14, Math.floor(h / 3));
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      let px = pos.getX(i);
+      let py = pos.getY(i);
+      let pz = pos.getZ(i);
+      const strata = Math.sin(py * 1.2) * 1.8;
+      if (py > -h / 2 + 2) {
+        pos.setX(i, px + strata * Math.sign(px) + (Math.random() - 0.5) * 2);
+        pos.setZ(i, pz + strata * Math.sign(pz) + (Math.random() - 0.5) * 2);
+      }
+    }
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.9, flatShading: true })
+    );
+    mesh.position.set(x, y + h / 2, z);
+    mesh.castShadow = true;
+    this.scene.add(mesh);
 
-    // Glowing Hover Thruster Pads
-    const padMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-    const padGeo = new THREE.BoxGeometry(1.5, 0.4, 2);
-    const offsets = [[-3, -4], [3, -4], [-3, 4], [3, 4]];
-    offsets.forEach(off => {
-      const pad = new THREE.Mesh(padGeo, padMat);
-      pad.position.set(x + off[0], y + 1.0, z + off[1]);
-      pad.rotation.y = Math.PI / 12;
-      this.scene.add(pad);
-    });
-  }
-
-  createCactus(x, y, z) {
-    const mat = new THREE.MeshStandardMaterial({ color: 0x4a6a38, roughness: 0.8 });
-    const trunkGeo = new THREE.CylinderGeometry(0.4, 0.5, 3.2, 8);
-    const trunk = new THREE.Mesh(trunkGeo, mat);
-    trunk.position.set(x, y + 1.6, z);
-    trunk.castShadow = true;
-    trunk.receiveShadow = true;
-    this.scene.add(trunk);
-    this.addCollider(trunk, 'cactus', true);
-
-    const arm1Geo = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 8);
-    const arm1 = new THREE.Mesh(arm1Geo, mat);
-    arm1.position.set(x + 0.6, y + 1.8, z);
-    arm1.rotation.z = Math.PI / 4;
-    arm1.castShadow = true;
-    this.scene.add(arm1);
-
-    const arm2Geo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 8);
-    const arm2 = new THREE.Mesh(arm2Geo, mat);
-    arm2.position.set(x - 0.5, y + 1.2, z);
-    arm2.rotation.z = -Math.PI / 3;
-    arm2.castShadow = true;
-    this.scene.add(arm2);
+    const col = new THREE.Mesh(
+      new THREE.CylinderGeometry(Math.max(baseR, topR) * 0.85, Math.max(baseR, topR) * 0.85, h, 8)
+    );
+    col.position.copy(mesh.position);
+    this.addCollider(col, name, true);
   }
 
   buildRoute66Environment() {
-    // 1. Desert Floor
-    const floorGeo = new THREE.PlaneGeometry(600, 600);
-    floorGeo.rotateX(-Math.PI / 2);
-    const floorMat = new THREE.MeshStandardMaterial({ color: this.colors.ground, roughness: 1.0 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.receiveShadow = true;
-    this.scene.add(floor);
+    const PALETTE = this.palette;
 
-    // Railroad tracks & wooden ties
-    for (let i = 0; i < 5; i++) {
-      this.createBox(-10 + (i * 6), 0, -35, 1, 0.2, 20, 0x333333, 0, 0, 0, 'rail_track', false);
-      this.createBox(-10 + (i * 6), 0, -25, 1, 0.2, 20, 0x333333, 0, 0, 0, 'rail_track', false);
-    }
-    for (let i = 0; i < 15; i++) {
-      this.createBox(-15 + (i * 2), 0, -30, 4, 0.1, 1, this.colors.wood, 0, 0, 0, 'rail_tie', false);
-    }
+    // 1. Sand Ground
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(360, 360),
+      new THREE.MeshStandardMaterial({ color: PALETTE.sand, roughness: 0.95 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
 
-    // 2. S-Curved Route 66 Highway
+    // Floor Base Box for robust collision support
+    const floorBox = new THREE.Mesh(new THREE.BoxGeometry(360, 4, 360));
+    floorBox.position.y = -2;
+    this.addCollider(floorBox, 'ground_base', true);
+
+    // 2. Asphalt Highway Roads
     const roadMat = this.createRoadTexture();
 
-    const road1 = new THREE.Mesh(new THREE.PlaneGeometry(24, 80), roadMat);
-    road1.rotation.x = -Math.PI / 2;
-    road1.rotation.z = Math.PI / 5;
-    road1.position.set(45, 0.05, -30);
+    const road1 = new THREE.Mesh(new THREE.PlaneGeometry(26, 80), roadMat);
+    road1.position.set(30, 0.1, -55);
+    road1.rotation.set(-Math.PI / 2, 0, 0.3);
     road1.receiveShadow = true;
     this.scene.add(road1);
 
-    const road2 = new THREE.Mesh(new THREE.PlaneGeometry(24, 80), roadMat);
-    road2.rotation.x = -Math.PI / 2;
-    road2.rotation.z = -Math.PI / 10;
-    road2.position.set(15, 0.06, 25);
+    const road2 = new THREE.Mesh(new THREE.PlaneGeometry(26, 80), roadMat);
+    road2.position.set(12, 0.1, 0);
+    road2.rotation.set(-Math.PI / 2, 0, -0.2);
     road2.receiveShadow = true;
     this.scene.add(road2);
 
-    const road3 = new THREE.Mesh(new THREE.PlaneGeometry(24, 90), roadMat);
-    road3.rotation.x = -Math.PI / 2;
-    road3.rotation.z = Math.PI / 3;
-    road3.position.set(-35, 0.07, 50);
+    const road3 = new THREE.Mesh(new THREE.PlaneGeometry(26, 90), roadMat);
+    road3.position.set(-5, 0.1, 60);
+    road3.rotation.set(-Math.PI / 2, 0, -0.6);
     road3.receiveShadow = true;
     this.scene.add(road3);
 
-    // 3. Big Earl's Diner Building
-    this.createBox(30, 0, 15, 25, 7, 25, this.colors.dinerWall, 0, 0, 0, 'diner_1f');
-    this.createBox(30, 7, 15, 27, 1, 27, this.colors.dinerRoof, 0, 0, 0, 'diner_roof1');
-    this.createBox(32, 8, 12, 12, 5, 15, this.colors.dinerWall, 0, 0, 0, 'diner_2f');
-    this.createBox(32, 13, 12, 14, 1, 17, this.colors.dinerRoof, 0, 0, 0, 'diner_roof2');
-    this.createSignBoard(32, 14, 12, 14, 4, 0.5, "Big Earl's\n24 Hour", "#ffffff", "#c84b31", -Math.PI / 6, 'diner_sign');
+    // 3. Building 1: Big Earl's Diner (Right side)
+    this.createBox(40, 0, 5, 20, 6, 30, PALETTE.dinerWall, 0, 0, 0, 'diner_main');
+    this.createBox(40, 6, 5, 22, 1, 32, PALETTE.dinerTrim, 0, 0, 0, 'diner_roof_1f');
+    this.createBox(42, 7, 0, 14, 4, 18, PALETTE.dinerWall, 0, 0, 0, 'diner_2f');
+    this.createBox(42, 11, 0, 15, 0.5, 19, PALETTE.dinerTrim, 0, 0, 0, 'diner_roof_2f');
 
-    // Diner Gas Awning & Pumps
-    this.createBox(12, 6, 15, 20, 1, 10, this.colors.dinerAwning, 0, 0, Math.PI / 32, 'gas_awning');
-    this.createCylinder(6, 0, 12, 0.5, 6, 0x666666, 0, 0, 0, 'awning_pole1');
-    this.createCylinder(6, 0, 18, 0.5, 6, 0x666666, 0, 0, 0, 'awning_pole2');
-    this.createBox(6, 0, 15, 2, 3, 2, this.colors.signRed, 0, 0, 0, 'gas_pump1');
-    this.createBox(6, 3, 15, 1.5, 1.5, 1.5, 0xffffff, 0, 0, 0, 'gas_pump1_top');
-    this.createBox(6, 0, 12, 2, 3, 2, this.colors.signRed, 0, 0, 0, 'gas_pump2');
-    this.createBox(6, 3, 12, 1.5, 1.5, 1.5, 0xffffff, 0, 0, 0, 'gas_pump2_top');
+    // Diner Awning & Pillars
+    this.createBox(25, 5.5, 5, 22, 0.8, 18, PALETTE.dinerAwning, 0, 0, 0, 'diner_awning');
+    this.createCylinder(15, 0, -2, 0.4, 5.5, 0x555555, 0, 0, 0, 'awning_pole1');
+    this.createCylinder(15, 0, 12, 0.4, 5.5, 0x555555, 0, 0, 0, 'awning_pole2');
 
-    // Huge GAS Station Sign Tower
-    this.createCylinder(45, 0, 35, 0.8, 16, this.colors.signRed, 0, 0, 0, 'gas_tower_pole');
-    this.createSignBoard(45, 10, 35, 1, 5, 4, "G\nA\nS", "#ffffff", "#4a949e", -Math.PI / 4, 'gas_tower_sign');
-    this.createBox(45, 15, 35, 4, 3, 4, this.colors.signYellow, 0, 0, 0, 'gas_tower_top');
+    // Rooftop Neon Sign
+    const signMat = this.createSignTexture("Big Earl's\nDINER", "#b83b26", "#ffffff", 512, 256, 60);
+    this.createBox(42, 12, 0, 12, 4, 0.6, signMat, 0, -Math.PI / 6, 0, 'diner_neon_sign');
 
-    // Parkour Crates for Diner Roof Access
-    this.createBox(18, 0, 24, 6, 2.5, 4, this.colors.wood, 0, 0, 0, 'diner_parkour1');
-    this.createBox(18, 2.5, 24, 4, 2.5, 4, this.colors.wood, 0, 0, 0, 'diner_parkour2');
-    this.createBox(22, 0, 28, 4, 2, 4, 0x555555, 0, 0, 0, 'diner_parkour3');
+    // GAS Station Sign Crown Tower
+    this.createCylinder(48, 0, 30, 0.9, 22, 0xb83226, 0, 0, 0, 'gas_tower_pole');
+    this.createCylinder(48, 14, 30, 3, 1, 0xffffff, 0, 0, 0, 'gas_ring1');
+    this.createCylinder(48, 16.5, 30, 3, 1, 0xffffff, 0, 0, 0, 'gas_ring2');
+    this.createCylinder(48, 19, 30, 3, 1, 0xffffff, 0, 0, 0, 'gas_ring3');
+    const crown = new THREE.Mesh(
+      new THREE.ConeGeometry(4, 3, 6),
+      new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.3, metalness: 0.7 })
+    );
+    crown.position.set(48, 22, 30);
+    crown.rotation.x = Math.PI;
+    this.scene.add(crown);
 
-    // 4. Blue Garage Building
-    this.createBox(-20, 0, 50, 30, 8, 25, 0x88949c, 0, 0, 0, 'garage_main');
-    this.createBox(-20, 8, 50, 32, 1, 27, this.colors.garageBlue, 0, 0, 0, 'garage_roof');
-    this.createBox(-45, 0, 45, 20, 6, 15, 0x88949c, 0, 0, 0, 'garage_wing');
-    this.createBox(-45, 6, 45, 22, 1, 17, this.colors.garageBlue, 0, 0, 0, 'garage_wing_roof');
+    // 4. Building 2: Left Steel Deck Platform & Mine Entrance
+    this.createBox(-35, 7, -15, 20, 1, 25, PALETTE.metalPlatform, 0, 0, 0, 'metal_deck');
+    this.createCylinder(-27, 0, -26, 0.5, 7, 0x555555, 0, 0, 0, 'platform_pole1');
+    this.createCylinder(-27, 0, -4, 0.5, 7, 0x555555, 0, 0, 0, 'platform_pole2');
+    this.createCylinder(-43, 0, -26, 0.5, 7, 0x555555, 0, 0, 0, 'platform_pole3');
+    this.createCylinder(-43, 0, -4, 0.5, 7, 0x555555, 0, 0, 0, 'platform_pole4');
+    this.createBox(-35, 0, -15, 12, 7, 15, 0x4a5568, 0, 0, 0, 'deck_container');
+    this.createBox(-20, 0, -20, 5, 3, 5, PALETTE.woodCrate, 0, 0, 0, 'crate_step1');
+    this.createBox(-24, 3, -18, 4, 3, 4, PALETTE.woodCrate, 0, 0, 0, 'crate_step2');
 
-    // Garage Parkour Crates
-    this.createBox(-10, 0, 35, 4, 3, 4, this.colors.wood, 0, 0, 0, 'garage_box1');
-    this.createBox(-10, 3, 35, 3, 3, 3, this.colors.wood, 0, 0, 0, 'garage_box2');
-    this.createBox(-30, 0, 38, 5, 4, 5, 0x555555, 0, 0, 0, 'garage_crate');
+    // 5. Building 3: Deadlock Garage (Lower side)
+    this.createBox(-15, 0, 60, 25, 8, 20, PALETTE.dinerWall, 0, 0, 0, 'garage_main');
+    this.createBox(-15, 8, 60, 27, 1.2, 22, PALETTE.garageBlue, 0, 0, 0, 'garage_roof');
+    this.createBox(-18, 9, 62, 10, 4, 12, PALETTE.dinerWall, 0, 0, 0, 'garage_2f');
+    this.createBox(-18, 13, 62, 11, 0.6, 13, PALETTE.garageBlue, 0, 0, 0, 'garage_2f_roof');
 
-    // 5. Deadlock Gang Base (Attack Spawn Outpost)
-    this.createBox(-45, 0, -5, 20, 5, 25, this.colors.dinerWall, 0, 0, 0, 'deadlock_base');
-    this.createBox(-50, 5, -10, 15, 5, 15, 0x9a968a, 0, 0, 0, 'deadlock_tower');
-    this.createBox(-32, 0, 5, 4, 2, 4, this.colors.wood, 0, 0, 0, 'deadlock_crate1');
-    this.createBox(-38, 0, 0, 4, 4, 4, 0x555555, 0, 0, 0, 'deadlock_crate2');
+    // 6. Props: Crashed Train Debris, Hovering Payload & Gorge Billboard
+    this.buildHoodoo(2, 0, -25, 8, 5, 10, PALETTE.rockDark, 'train_rock_pedestal');
+    this.createBox(5, 7, -25, 8, 5, 18, PALETTE.trainRed, 0.1, 0.4, 0.1, 'train_red');
+    this.createBox(-10, 0, -15, 12, 5, 6, PALETTE.trainSilver, -0.1, -0.2, 0, 'train_silver_ramp');
+    this.createBox(-12, 3, -20, 4, 4, 4, PALETTE.woodCrate, 0, 0, 0, 'train_crate_step');
 
-    // 6. Deadlock Gorge Billboard
-    this.createSignBoard(35, 5, -15, 1, 8, 16, "Welcome to\nDeadlock Gorge!", this.colors.billboard, "#ffffff", -Math.PI / 5, 'welcome_billboard');
-    this.createCylinder(35, 0, -11, 0.4, 5, 0x333333, 0, 0, 0, 'billboard_pole1');
-    this.createCylinder(35, 0, -19, 0.4, 5, 0x333333, 0, 0, 0, 'billboard_pole2');
+    // Hovering Payload Vehicle
+    this.createBox(-2, 1.5, 35, 7, 3, 12, PALETTE.payloadBlue, 0, -0.3, 0, 'payload_body');
+    // Hover thruster pads
+    const padMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const padGeo = new THREE.BoxGeometry(1.5, 0.4, 2);
+    const thrusterOffsets = [[-3, -4], [3, -4], [-3, 4], [3, 4]];
+    thrusterOffsets.forEach(off => {
+      const pad = new THREE.Mesh(padGeo, padMat);
+      pad.position.set(-2 + off[0], 1.0, 35 + off[1]);
+      pad.rotation.y = -0.3;
+      this.scene.add(pad);
+    });
 
-    // 7. Hovering Payload Vehicle
-    this.createPayload(25, 0, 5);
+    // Welcome Billboard
+    const boardMat = this.createSignTexture("Welcome to\nDeadlock Gorge", "#2b6cb0", "#ffffff", 512, 256, 45);
+    this.createBox(17, 8, -36, 14, 8, 1, boardMat, 0, -0.3, 0, 'billboard_sign');
+    this.createCylinder(12, 0, -35, 0.5, 8, 0x555555, 0, 0, 0, 'billboard_pole1');
+    this.createCylinder(22, 0, -38, 0.5, 8, 0x555555, 0, 0, 0, 'billboard_pole2');
 
-    // 8. Central Cliff & Crashed Train Wreck
-    this.createBox(0, 0, -15, 25, 6, 25, this.colors.rockDark, 0, 0, 0, 'cliff_base');
-    this.createBox(5, 6, -20, 15, 4, 15, this.colors.rock, 0, 0, 0, 'cliff_top');
+    // 7. Giant Canyon Walls (Canyon perimeter)
+    this.buildStrataCliff(0, 0, -110, 260, 80, 40, 0, PALETTE.rockBase, 'cliff_north');
+    this.buildStrataCliff(0, 0, 110, 260, 80, 40, 0, PALETTE.rockBase, 'cliff_south');
+    this.buildStrataCliff(110, 0, 0, 40, 80, 260, 0, PALETTE.rockDark, 'cliff_east');
+    this.buildStrataCliff(-110, 0, 0, 40, 80, 260, 0, PALETTE.rockDark, 'cliff_west');
 
-    // Red & Silver Train Cars
-    this.createBox(12, 4, -10, 8, 5, 15, this.colors.trainRed, 0, Math.PI / 16, 0, 'train_car_red');
-    this.createBox(12, 0, -2, 5, 2, 5, this.colors.trainSilver, 0, 0, 0, 'train_step1');
-    this.createBox(12, 2, -4, 5, 2, 5, this.colors.trainSilver, 0, 0, 0, 'train_step2');
+    // Corner Cliffs
+    this.buildStrataCliff(80, 0, -80, 60, 75, 60, Math.PI / 4, PALETTE.rockHighlight, 'cliff_ne');
+    this.buildStrataCliff(-80, 0, -80, 60, 75, 60, -Math.PI / 4, PALETTE.rockHighlight, 'cliff_nw');
+    this.buildStrataCliff(80, 0, 80, 60, 75, 60, -Math.PI / 4, PALETTE.rockBase, 'cliff_se');
+    this.buildStrataCliff(-80, 0, 80, 60, 75, 60, Math.PI / 4, PALETTE.rockBase, 'cliff_sw');
 
-    // Upper Train Debris
-    this.createBox(-8, 7, -18, 10, 5, 15, this.colors.trainSilver, 0, -Math.PI / 16, 0, 'train_car_silver');
-    this.createBox(-2, 6, -12, 4, 2, 4, this.colors.wood, 0, 0, 0, 'train_wood');
-
-    // 9. Canyon Boundaries (Four Massive 80m High Rock Canyon Walls)
-    this.buildRockWall(0, 0, -100, 300, 80, 40, 0, this.colors.rock, 'canyon_wall_north');
-    this.buildRockWall(0, 0, 100, 300, 80, 40, 0, this.colors.rock, 'canyon_wall_south');
-    this.buildRockWall(-100, 0, 0, 40, 80, 300, 0, this.colors.rockDark, 'canyon_wall_west');
-    this.buildRockWall(100, 0, 0, 40, 80, 300, 0, this.colors.rockDark, 'canyon_wall_east');
-
-    // Corner Canyon Buttes
-    this.buildRockWall(60, 0, -60, 50, 60, 50, Math.PI / 4, this.colors.rockDark, 'canyon_corner_ne');
-    this.buildRockWall(75, 0, 25, 40, 50, 40, -Math.PI / 6, this.colors.rock, 'canyon_corner_se');
-    this.buildRockWall(-60, 0, -60, 60, 60, 60, -Math.PI / 4, this.colors.rockDark, 'canyon_corner_nw');
-    this.buildRockWall(-70, 0, 60, 50, 60, 50, Math.PI / 4, this.colors.rock, 'canyon_corner_sw');
-
-    // Attack Team Tunnel Rock
-    this.createBox(65, 15, -30, 40, 20, 30, this.colors.rockDark, 0, 0, 0, 'tunnel_rock');
-
-    // Hoodoo Pillars
-    this.createCylinder(-25, 0, -50, 8, 40, this.colors.rockDark, 0, 0, 0, 'hoodoo1_base');
-    this.createCylinder(-25, 40, -50, 10, 10, this.colors.rock, 0, 0, 0, 'hoodoo1_cap');
-    this.createCylinder(-40, 0, -35, 6, 35, this.colors.rock, 0, 0, 0, 'hoodoo2');
-
-    // 10. Props & Foliage
-    this.createCactus(25, 0, -5);
-    this.createCactus(-5, 0, 20);
-    this.createCactus(-35, 0, 25);
-    this.createCactus(10, 0, -45);
-    this.createCactus(-15, 0, 5);
-
-    // Tire Piles
-    this.createCylinder(8, 0, 15, 1, 1, 0x111111, Math.PI / 2, 0, 0, 'tire1');
-    this.createCylinder(8, 1, 15, 1, 1, 0x111111, Math.PI / 2, 0, 0, 'tire2');
-    this.createCylinder(10, 0, 16, 1, 1, 0x111111, Math.PI / 2, 0, 0, 'tire3');
+    // Towering Hoodoo Pillars
+    this.buildHoodoo(-32, 0, -45, 12, 4, 52, PALETTE.rockHighlight, 'hoodoo_main_1');
+    this.buildHoodoo(55, 0, 15, 14, 5, 48, PALETTE.rockDark, 'hoodoo_main_2');
+    this.buildHoodoo(-50, 0, 30, 11, 4, 42, PALETTE.rockBase, 'hoodoo_main_3');
   }
 
   // ==========================================================================
-  // DISTRIBUTED HEALTH PACKS (MEGA 250 HP & MINI 75 HP)
+  // DISTRIBUTED HEALTH PACKS (MEGA 250 HP & MINI 75 HP) - ROUTE 66 LAYOUT
   // ==========================================================================
   spawnHealthPacks() {
-    // Mega Health Packs (250 HP, 10s cooldown)
-    this.createHealthPack(28, 0, 12, 250, 'mega');     // Inside/next to Big Earl's Diner
-    this.createHealthPack(-5, 0, -15, 250, 'mega');    // Under central train cliff pass
-    this.createHealthPack(-25, 0, 48, 250, 'mega');    // Inside Blue Garage
+    // Mega Health Packs (250 HP, 10s cooldown) - Strategic Main Hubs
+    this.createHealthPack(38, 0, 18, 250, 'mega');     // Inside/side patio of Big Earl's Diner
+    this.createHealthPack(-35, 0, -3, 250, 'mega');    // Under left steel platform / container base
+    this.createHealthPack(-15, 0, 60, 250, 'mega');    // Inside Deadlock Garage
 
-    // Small Health Packs (75 HP, 6s cooldown)
-    this.createHealthPack(8, 0, 18, 75, 'mini');       // Near Gas Station Awning
-    this.createHealthPack(35, 0, -13, 75, 'mini');     // Behind Deadlock Billboard
-    this.createHealthPack(-32, 0, 2, 75, 'mini');      // Deadlock Base Supply Crates
-    this.createHealthPack(32, 7, 15, 75, 'mini');      // Diner 2nd Floor Roof Terrace
-    this.createHealthPack(15, 0, 30, 75, 'mini');      // Highway S-Curve Midpoint
+    // Small Health Packs (75 HP, 6s cooldown) - High Grounds & Flank Routes
+    this.createHealthPack(40, 6.5, 5, 75, 'mini');     // Big Earl's Diner 1st floor roof terrace
+    this.createHealthPack(-35, 7.5, -15, 75, 'mini');  // Steel platform 2nd floor sniper deck
+    this.createHealthPack(5, 7.5, -25, 75, 'mini');    // Atop crashed red train car
+    this.createHealthPack(-2, 0, 35, 75, 'mini');      // Flank beside hovering payload
+    this.createHealthPack(17, 0, -36, 75, 'mini');     // Underneath Gorge Welcome billboard
   }
 
   createHealthPack(x, y, z, healAmount, type) {
@@ -2145,7 +2149,7 @@ class MapBuilder {
       if (col.canStandOn) {
         if (pos.x >= col.minX - 0.2 && pos.x <= col.maxX + 0.2 &&
             pos.z >= col.minZ - 0.2 && pos.z <= col.maxZ + 0.2) {
-          if (feetY >= col.maxY - 0.6) {
+          if (feetY >= col.maxY - 0.7) {
             groundY = Math.max(groundY, col.maxY + 1.7);
           }
         }
@@ -2181,9 +2185,9 @@ class MapBuilder {
       }
     }
 
-    // 2. Canyon Outer Perimeter Clamping (Route 66 boundaries)
-    pos.x = Math.max(-88.0, Math.min(88.0, pos.x));
-    pos.z = Math.max(-88.0, Math.min(88.0, pos.z));
+    // 2. Canyon Outer Perimeter Clamping (Route 66 canyon rock walls)
+    pos.x = Math.max(-95.0, Math.min(95.0, pos.x));
+    pos.z = Math.max(-95.0, Math.min(95.0, pos.z));
 
     return { groundY };
   }
@@ -2192,7 +2196,7 @@ class MapBuilder {
     const feetY = pos.y - 1.7;
     const headY = pos.y + 0.2;
 
-    if (Math.abs(pos.x) >= 88.0 || Math.abs(pos.z) >= 88.0) {
+    if (Math.abs(pos.x) >= 95.0 || Math.abs(pos.z) >= 95.0) {
       return { hit: true, name: 'canyon_wall' };
     }
 
@@ -2213,8 +2217,48 @@ class MapBuilder {
     return { hit: false };
   }
 
+  // ==========================================================================
+  // RAYCAST COLLIDERS (For Hitscan weapons like Tracer's Pulse Pistols)
+  // Ensures bullets NEVER penetrate walls, buildings or rock pillars!
+  // ==========================================================================
+  raycastColliders(ray, maxDistance = 60) {
+    let closestDist = maxDistance;
+    let closestPoint = null;
+    let hitCollider = null;
+
+    const box = new THREE.Box3();
+    const hitPoint = new THREE.Vector3();
+
+    for (const col of this.colliders) {
+      // Skip the bottom floor box when shooting across the surface
+      if (col.maxY <= 0.05 && col.minY < -0.5) continue;
+
+      box.min.set(col.minX, col.minY, col.minZ);
+      box.max.set(col.maxX, col.maxY, col.maxZ);
+
+      const intersection = ray.intersectBox(box, hitPoint);
+      if (intersection) {
+        const dist = ray.origin.distanceTo(intersection);
+        if (dist > 0.01 && dist < closestDist) {
+          closestDist = dist;
+          closestPoint = intersection.clone();
+          hitCollider = col;
+        }
+      }
+    }
+
+    // Outer canyon boundaries check (x: ±95, z: ±95)
+    // If shooting out of bounds, clip at perimeter
+    return {
+      hit: closestDist < maxDistance,
+      distance: closestDist,
+      point: closestPoint,
+      collider: hitCollider
+    };
+  }
+
   checkProjectileHit(prevPos, currentPos, radius = 0.25) {
-    if (Math.abs(currentPos.x) >= 88.0 || Math.abs(currentPos.z) >= 88.0) {
+    if (Math.abs(currentPos.x) >= 95.0 || Math.abs(currentPos.z) >= 95.0) {
       return { hit: true, point: currentPos.clone(), name: 'canyon_wall' };
     }
     if (currentPos.y <= 0.08) {
@@ -4510,7 +4554,7 @@ class Tracer extends HeroBase {
     return group;
   }
 
-  primaryFire(camera, scene, projectileManager, audio, shaker) {
+  primaryFire(camera, scene, projectileManager, audio, shaker, map) {
     if (this.ammo <= 0) {
       this.startReload(audio);
       return null;
@@ -4543,12 +4587,21 @@ class Tracer extends HeroBase {
 
     raycaster.set(camera.position, forward);
 
-    // Bullet laser tracer beam
+    // Bullet laser tracer beam clipped to walls
     const origin = camera.position.clone().add(forward.clone().multiplyScalar(0.5));
-    const hitTargetEnd = origin.clone().add(forward.clone().multiplyScalar(40));
+    let hitTargetEnd = origin.clone().add(forward.clone().multiplyScalar(40));
+
+    let wallHit = null;
+    if (map && typeof map.raycastColliders === 'function') {
+      wallHit = map.raycastColliders(raycaster.ray, 45);
+      if (wallHit.hit && wallHit.point) {
+        hitTargetEnd = wallHit.point.clone();
+      }
+    }
+
     projectileManager.addBulletBeam(origin, hitTargetEnd, 0x00f0ff);
 
-    return { raycaster, damage: 9, isHeadshotMultiplier: 2.0 };
+    return { raycaster, damage: 9, isHeadshotMultiplier: 2.0, wallHit, hitTargetEnd };
   }
 
   secondaryFire(camera, scene, projectileManager, audio, shaker, bots, onHitCallback) {
@@ -6914,6 +6967,45 @@ class OverwatchGame {
 
     const heroTitle = document.getElementById('lobby-hero-title');
 
+    // Dynamic responsive camera fitting for any screen aspect ratio (mobile/tablet/desktop)
+    const fitCameraToHero = () => {
+      if (!canvas || !camera) return;
+      const nw = canvas.clientWidth || 540;
+      const nh = canvas.clientHeight || 250;
+      if (nw === 0 || nh === 0) return;
+
+      const aspect = nw / nh;
+      camera.aspect = aspect;
+
+      showcaseGroup.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(showcaseGroup);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      // Model dimensions with fallback
+      const mHeight = Math.max(size.y, 2.0);
+      const mWidth = Math.max(size.x, 1.2);
+
+      // Camera Vertical FOV
+      const vFov = 34; // Slightly tighter lens for premium hero gallery look
+      camera.fov = vFov;
+      const vFovRad = THREE.MathUtils.degToRad(vFov * 0.5);
+
+      // Distance required to fit vertically and horizontally with generous 1.35x padding
+      const distY = (mHeight * 0.5) / Math.tan(vFovRad);
+      const distX = (mWidth * 0.5) / (aspect * Math.tan(vFovRad));
+      const targetDist = Math.max(distY, distX) * 1.35;
+
+      const targetCenterY = Math.max(0.65, center.y);
+      camera.position.set(0, targetCenterY, targetDist);
+      camera.lookAt(0, targetCenterY, 0);
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(nw, nh, false);
+    };
+
     const loadHero = (heroKey) => {
       while (showcaseGroup.children.length > 0) {
         showcaseGroup.remove(showcaseGroup.children[0]);
@@ -6924,22 +7016,22 @@ class OverwatchGame {
       if (heroKey === 'reinhardt') {
         const data = buildReinhardtModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
-        camera.position.set(0, 1.25, 3.8);
         if (heroTitle) heroTitle.textContent = '라인하르트 (REINHARDT)';
         ringMat.color.setHex(0xf59e0b);
       } else if (heroKey === 'genji') {
         const data = buildGenjiModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
-        camera.position.set(0, 0.95, 3.0);
         if (heroTitle) heroTitle.textContent = '겐지 (GENJI)';
         ringMat.color.setHex(0x55ff22);
       } else {
         const data = buildTracerModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
-        camera.position.set(0, 0.9, 2.9);
         if (heroTitle) heroTitle.textContent = '트레이서 (TRACER)';
         ringMat.color.setHex(0xf97316);
       }
+
+      // Automatically frame full hero model on load
+      requestAnimationFrame(fitCameraToHero);
     };
 
     loadHero(this.currentHeroKey || 'tracer');
@@ -6965,17 +7057,21 @@ class OverwatchGame {
     this.stopLobbyShowcase = () => {
       isRunning = false;
       if (animId) cancelAnimationFrame(animId);
+      if (this.resizeObserver) this.resizeObserver.disconnect();
       renderer.dispose();
     };
 
-    window.addEventListener('resize', () => {
-      if (!isRunning || !canvas) return;
-      const nw = canvas.clientWidth || 540;
-      const nh = canvas.clientHeight || 250;
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh, false);
+    // Resize listeners: window and element ResizeObserver
+    window.addEventListener('resize', fitCameraToHero);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(fitCameraToHero, 100);
+      setTimeout(fitCameraToHero, 300);
     });
+
+    if (window.ResizeObserver && canvas) {
+      this.resizeObserver = new ResizeObserver(() => fitCameraToHero());
+      this.resizeObserver.observe(canvas.parentElement || canvas);
+    }
   }
 
   copyInviteLink(btnElement) {
@@ -7388,33 +7484,56 @@ class OverwatchGame {
         this.scene,
         this.projectiles,
         this.audio,
-        this.shaker
+        this.shaker,
+        this.map
       );
 
       if (hitResult) {
         if (hitResult.raycaster) {
-          // Hitscan Raycasting (Tracer)
+          // Check collision with walls / obstacles in map FIRST
+          let wallHit = hitResult.wallHit;
+          if (!wallHit && this.map && typeof this.map.raycastColliders === 'function') {
+            wallHit = this.map.raycastColliders(hitResult.raycaster.ray, 50);
+          }
+          const wallDist = (wallHit && wallHit.hit) ? wallHit.distance : Infinity;
+
+          // Hitscan Raycasting against targets (Tracer)
           const hits = [];
           allTargets.forEach((target) => {
             if (target.isDead) return;
             const targetMeshes = target.hitMeshes || [target.bodyMesh, target.headMesh];
             const intersects = hitResult.raycaster.intersectObjects(targetMeshes, true);
             if (intersects.length > 0) {
-              hits.push({ target, intersect: intersects[0] });
+              // Target is ONLY hit if closer than the obstructing wall!
+              if (intersects[0].distance < wallDist) {
+                hits.push({ target, intersect: intersects[0] });
+              }
             }
           });
 
-          // Broadcast primary fire beam to other players
+          // Determine laser beam visual end point
           const rayOrigin = this.camera.position.clone();
           const rayDir = hitResult.raycaster.ray.direction.clone();
-          const beamEnd = rayOrigin.clone().addScaledVector(rayDir, 35);
+          let beamEnd = rayOrigin.clone().addScaledVector(rayDir, Math.min(35, wallDist));
+
+          if (hits.length > 0) {
+            hits.sort((a, b) => a.intersect.distance - b.intersect.distance);
+            if (hits[0].intersect.point) {
+              beamEnd = hits[0].intersect.point.clone();
+            }
+          } else if (wallHit && wallHit.hit && wallHit.point) {
+            // Hit solid wall/obstacle! Spawn impact sparks
+            beamEnd = wallHit.point.clone();
+            if (this.projectiles && typeof this.projectiles.spawnHitSparks === 'function') {
+              this.projectiles.spawnHitSparks(wallHit.point, new THREE.Vector3(0, 1, 0), 0x00f0ff);
+            }
+          }
+
+          // Broadcast primary fire beam to other players
           this.network.sendAction('primary_fire_beam', {
             start: [rayOrigin.x, rayOrigin.y - 0.2, rayOrigin.z],
             end: [beamEnd.x, beamEnd.y, beamEnd.z]
           });
-
-          if (hits.length > 0) {
-            hits.sort((a, b) => a.intersect.distance - b.intersect.distance);
             const target = hits[0].target;
             const hitObject = hits[0].intersect.object;
 

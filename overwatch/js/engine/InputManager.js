@@ -390,26 +390,51 @@ export class InputManager {
     // ------------------------------------------------------------------------
     // 3. TOP BAR UTILITY BUTTONS (HERO SWITCH & SCOREBOARD)
     // ------------------------------------------------------------------------
-    const btnSwitch = document.getElementById('btn-touch-switch');
-    if (btnSwitch) {
-      btnSwitch.addEventListener('touchstart', (e) => {
+    // ------------------------------------------------------------------------
+    // 3. TOP BAR UTILITY BUTTONS (HERO SWITCH & SCOREBOARD)
+    // ------------------------------------------------------------------------
+    const triggerHeroSwitch = (e) => {
+      if (e) {
         e.preventDefault();
         e.stopPropagation();
-        if (this.onHeroSwitchRequested) {
-          this.onHeroSwitchRequested('toggle_modal');
-          if ('vibrate' in navigator) navigator.vibrate(15);
-        }
-      }, { passive: false });
+      }
+      if (this.onHeroSwitchRequested) {
+        this.onHeroSwitchRequested('toggle_modal');
+        if ('vibrate' in navigator) navigator.vibrate(15);
+      }
+    };
+
+    const btnSwitch = document.getElementById('btn-touch-switch');
+    if (btnSwitch) {
+      btnSwitch.addEventListener('touchstart', triggerHeroSwitch, { passive: false });
+      btnSwitch.addEventListener('click', triggerHeroSwitch);
     }
+
+    const btnDesktopSwitch = document.getElementById('btn-desktop-hero-switch');
+    if (btnDesktopSwitch) {
+      btnDesktopSwitch.addEventListener('click', triggerHeroSwitch);
+    }
+
+    const portraitFrame = document.querySelector('.hero-portrait-frame');
+    if (portraitFrame) {
+      portraitFrame.addEventListener('click', triggerHeroSwitch);
+      portraitFrame.style.cursor = 'pointer';
+      portraitFrame.setAttribute('title', '클릭하여 영웅 변경');
+    }
+
+    const triggerScoreboard = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.keys.tab = !this.keys.tab;
+      if ('vibrate' in navigator) navigator.vibrate(15);
+    };
 
     const btnScoreboard = document.getElementById('btn-touch-scoreboard');
     if (btnScoreboard) {
-      btnScoreboard.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.keys.tab = !this.keys.tab;
-        if ('vibrate' in navigator) navigator.vibrate(15);
-      }, { passive: false });
+      btnScoreboard.addEventListener('touchstart', triggerScoreboard, { passive: false });
+      btnScoreboard.addEventListener('click', triggerScoreboard);
     }
   }
 

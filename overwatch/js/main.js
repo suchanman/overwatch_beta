@@ -723,6 +723,45 @@ class OverwatchGame {
 
     const heroTitle = document.getElementById('lobby-hero-title');
 
+    // Dynamic responsive camera fitting for any screen aspect ratio (mobile/tablet/desktop)
+    const fitCameraToHero = () => {
+      if (!canvas || !camera) return;
+      const nw = canvas.clientWidth || 540;
+      const nh = canvas.clientHeight || 250;
+      if (nw === 0 || nh === 0) return;
+
+      const aspect = nw / nh;
+      camera.aspect = aspect;
+
+      showcaseGroup.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(showcaseGroup);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      // Model dimensions with fallback
+      const mHeight = Math.max(size.y, 2.0);
+      const mWidth = Math.max(size.x, 1.2);
+
+      // Camera Vertical FOV
+      const vFov = 34; // Slightly tighter lens for premium hero gallery look
+      camera.fov = vFov;
+      const vFovRad = THREE.MathUtils.degToRad(vFov * 0.5);
+
+      // Distance required to fit vertically and horizontally with generous 1.35x padding
+      const distY = (mHeight * 0.5) / Math.tan(vFovRad);
+      const distX = (mWidth * 0.5) / (aspect * Math.tan(vFovRad));
+      const targetDist = Math.max(distY, distX) * 1.35;
+
+      const targetCenterY = Math.max(0.65, center.y);
+      camera.position.set(0, targetCenterY, targetDist);
+      camera.lookAt(0, targetCenterY, 0);
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(nw, nh, false);
+    };
+
     const loadHero = (heroKey) => {
       while (showcaseGroup.children.length > 0) {
         showcaseGroup.remove(showcaseGroup.children[0]);
@@ -733,22 +772,22 @@ class OverwatchGame {
       if (heroKey === 'reinhardt') {
         const data = buildReinhardtModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
-        camera.position.set(0, 1.25, 3.8);
         if (heroTitle) heroTitle.textContent = '라인하르트 (REINHARDT)';
         ringMat.color.setHex(0xf59e0b);
       } else if (heroKey === 'genji') {
         const data = buildGenjiModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
-        camera.position.set(0, 0.95, 3.0);
         if (heroTitle) heroTitle.textContent = '겐지 (GENJI)';
         ringMat.color.setHex(0x55ff22);
       } else {
         const data = buildTracerModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
-        camera.position.set(0, 0.9, 2.9);
         if (heroTitle) heroTitle.textContent = '트레이서 (TRACER)';
         ringMat.color.setHex(0xf97316);
       }
+
+      // Automatically frame full hero model on load
+      requestAnimationFrame(fitCameraToHero);
     };
 
     loadHero(this.currentHeroKey || 'tracer');
@@ -774,17 +813,21 @@ class OverwatchGame {
     this.stopLobbyShowcase = () => {
       isRunning = false;
       if (animId) cancelAnimationFrame(animId);
+      if (this.resizeObserver) this.resizeObserver.disconnect();
       renderer.dispose();
     };
 
-    window.addEventListener('resize', () => {
-      if (!isRunning || !canvas) return;
-      const nw = canvas.clientWidth || 540;
-      const nh = canvas.clientHeight || 250;
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh, false);
+    // Resize listeners: window and element ResizeObserver
+    window.addEventListener('resize', fitCameraToHero);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(fitCameraToHero, 100);
+      setTimeout(fitCameraToHero, 300);
     });
+
+    if (window.ResizeObserver && canvas) {
+      this.resizeObserver = new ResizeObserver(() => fitCameraToHero());
+      this.resizeObserver.observe(canvas.parentElement || canvas);
+    }
   }
 
   copyInviteLink(btnElement) {
@@ -1197,33 +1240,56 @@ class OverwatchGame {
         this.scene,
         this.projectiles,
         this.audio,
-        this.shaker
+        this.shaker,
+        this.map
       );
 
       if (hitResult) {
         if (hitResult.raycaster) {
-          // Hitscan Raycasting (Tracer)
+          // Check collision with walls / obstacles in map FIRST
+          let wallHit = hitResult.wallHit;
+          if (!wallHit && this.map && typeof this.map.raycastColliders === 'function') {
+            wallHit = this.map.raycastColliders(hitResult.raycaster.ray, 50);
+          }
+          const wallDist = (wallHit && wallHit.hit) ? wallHit.distance : Infinity;
+
+          // Hitscan Raycasting against targets (Tracer)
           const hits = [];
           allTargets.forEach((target) => {
             if (target.isDead) return;
             const targetMeshes = target.hitMeshes || [target.bodyMesh, target.headMesh];
             const intersects = hitResult.raycaster.intersectObjects(targetMeshes, true);
             if (intersects.length > 0) {
-              hits.push({ target, intersect: intersects[0] });
+              // Target is ONLY hit if closer than the obstructing wall!
+              if (intersects[0].distance < wallDist) {
+                hits.push({ target, intersect: intersects[0] });
+              }
             }
           });
 
-          // Broadcast primary fire beam to other players
+          // Determine laser beam visual end point
           const rayOrigin = this.camera.position.clone();
           const rayDir = hitResult.raycaster.ray.direction.clone();
-          const beamEnd = rayOrigin.clone().addScaledVector(rayDir, 35);
+          let beamEnd = rayOrigin.clone().addScaledVector(rayDir, Math.min(35, wallDist));
+
+          if (hits.length > 0) {
+            hits.sort((a, b) => a.intersect.distance - b.intersect.distance);
+            if (hits[0].intersect.point) {
+              beamEnd = hits[0].intersect.point.clone();
+            }
+          } else if (wallHit && wallHit.hit && wallHit.point) {
+            // Hit solid wall/obstacle! Spawn impact sparks
+            beamEnd = wallHit.point.clone();
+            if (this.projectiles && typeof this.projectiles.spawnHitSparks === 'function') {
+              this.projectiles.spawnHitSparks(wallHit.point, new THREE.Vector3(0, 1, 0), 0x00f0ff);
+            }
+          }
+
+          // Broadcast primary fire beam to other players
           this.network.sendAction('primary_fire_beam', {
             start: [rayOrigin.x, rayOrigin.y - 0.2, rayOrigin.z],
             end: [beamEnd.x, beamEnd.y, beamEnd.z]
           });
-
-          if (hits.length > 0) {
-            hits.sort((a, b) => a.intersect.distance - b.intersect.distance);
             const target = hits[0].target;
             const hitObject = hits[0].intersect.object;
 
