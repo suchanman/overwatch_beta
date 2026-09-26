@@ -2,7 +2,7 @@
  * ============================================================================
  * OVERWATCH 2 : WEB PROTOCOL - NODE.JS MULTIPLAYER SERVER (server.js)
  * - Express HTTP Static File Server & WebSocket Server on Port 8000
- * - Tracer (300HP), Genji (400HP), Reinhardt (1000HP)
+ * - Tracer (300HP), Genji (400HP), Reinhardt (1000HP), McCree (450HP), Doomfist (450HP)
  * - 5.0s Authoritative Respawn with Instant Corpse Vanish
  * ============================================================================
  */
@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 8000;
 
 app.use(express.static(path.join(__dirname)));
 
-const HERO_MAX_HP = { tracer: 300, genji: 400, reinhardt: 1000, mccree: 450 };
+const HERO_MAX_HP = { tracer: 300, genji: 400, reinhardt: 1000, mccree: 450, doomfist: 450 };
 const SPAWN_POINTS = [
   [0.0, 1.7, 18.0],
   [-18.0, 1.7, 12.0],

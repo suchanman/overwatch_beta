@@ -422,6 +422,17 @@ class OverwatchGame {
           0xfacc15
         );
         this.audio.playDeadeyeShot();
+      } else if (actionType === 'doomfist_punch') {
+        if (rp && rp.triggerPunch) {
+          rp.triggerPunch();
+        }
+        if (this.audio && typeof this.audio.playRocketPunchImpact === 'function') {
+          this.audio.playRocketPunchImpact();
+        }
+      } else if (actionType === 'doomfist_slam') {
+        if (this.audio && typeof this.audio.playSeismicSlam === 'function') {
+          this.audio.playSeismicSlam();
+        }
       }
     };
 

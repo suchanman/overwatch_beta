@@ -1672,8 +1672,8 @@ export function buildDoomfistModel(parentGroup) {
   // Add all main components to hit meshes
   hitMeshes.push(gauntletBase, topPlate, knuckleGuard);
 
-  // Position at floor level
-  doomfistRoot.position.y = 0.0;
+  // Position at floor level (feet at y = 0)
+  doomfistRoot.position.y = 0.26;
   if (parentGroup) parentGroup.add(doomfistRoot);
 
   return {

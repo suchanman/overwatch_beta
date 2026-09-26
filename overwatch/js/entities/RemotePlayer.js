@@ -42,6 +42,7 @@ export class RemotePlayer {
     this.lastPos = this.group.position.clone();
     this.hammerSwingTimer = 0;
     this.rollTimer = 0;
+    this.punchTimer = 0;
 
     // Model parts
     this.modelGroup = new THREE.Group();
@@ -129,7 +130,7 @@ export class RemotePlayer {
     });
 
     if (this.billboardMesh) {
-      this.billboardMesh.position.y = (heroKey === 'reinhardt') ? 2.85 : ((heroKey === 'genji' || heroKey === 'mccree') ? 2.30 : 2.1);
+      this.billboardMesh.position.y = (heroKey === 'reinhardt') ? 2.85 : ((heroKey === 'doomfist') ? 2.50 : ((heroKey === 'genji' || heroKey === 'mccree') ? 2.30 : 2.1));
     }
   }
 
@@ -153,7 +154,7 @@ export class RemotePlayer {
 
     this.billboardMesh = new THREE.Sprite(mat);
     this.billboardMesh.scale.set(2.4, 0.6, 1);
-    this.billboardMesh.position.set(0, this.heroKey === 'reinhardt' ? 2.85 : 2.3, 0);
+    this.billboardMesh.position.set(0, this.heroKey === 'reinhardt' ? 2.85 : (this.heroKey === 'doomfist' ? 2.50 : 2.3), 0);
     this.group.add(this.billboardMesh);
 
     this.updateHUDCanvas();
@@ -247,7 +248,7 @@ export class RemotePlayer {
     this.hp = maxHp;
     this.trailingHp = maxHp;
     this.buildModel(newHeroKey);
-    this.billboardMesh.position.y = (newHeroKey === 'reinhardt') ? 2.85 : ((newHeroKey === 'genji' || newHeroKey === 'mccree') ? 2.30 : 2.1);
+    this.billboardMesh.position.y = (newHeroKey === 'reinhardt') ? 2.85 : ((newHeroKey === 'doomfist') ? 2.50 : ((newHeroKey === 'genji' || newHeroKey === 'mccree') ? 2.30 : 2.1));
     this.updateHUDCanvas();
   }
 
@@ -285,6 +286,10 @@ export class RemotePlayer {
 
   triggerRoll() {
     this.rollTimer = 0.35;
+  }
+
+  triggerPunch() {
+    this.punchTimer = 0.40;
   }
 
   applyKnockback(vector, force = 1.0) {
@@ -335,6 +340,19 @@ export class RemotePlayer {
         }
       } else if (this.animNodes && this.animNodes.root && this.heroKey === 'mccree') {
         this.animNodes.root.rotation.x = 0;
+      }
+
+      // Procedural rocket punch thrust for remote Doomfist
+      if (this.heroKey === 'doomfist' && this.punchTimer > 0) {
+        this.punchTimer -= dt;
+        const progress = 1 - (this.punchTimer / 0.40);
+        const punchReach = Math.sin(progress * Math.PI);
+        if (this.animNodes && this.animNodes.rightArm) {
+          this.animNodes.rightArm.rotation.x = -Math.PI / 2 + punchReach * 0.4;
+          this.animNodes.rightArm.position.z = punchReach * 0.5;
+        }
+      } else if (this.animNodes && this.animNodes.rightArm && this.heroKey === 'doomfist') {
+        this.animNodes.rightArm.position.z = 0;
       }
     }
     this.lastPos.copy(this.group.position);
