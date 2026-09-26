@@ -289,7 +289,13 @@ export class McCree extends HeroBase {
   // SECONDARY FIRE: FAN THE HAMMER (난사 - 모든 탄약을 사용하는 연사)
   // ==========================================================================
   secondaryFire(camera, scene, projectileManager, audio, shaker, map) {
-    if (this.isRolling || this.isReloading || this.isDeadeyeActive) return null;
+    if (this.isRolling || this.isReloading) return null;
+
+    // Right-click cancels Deadeye without firing (authentic OW2 mechanic)
+    if (this.isDeadeyeActive) {
+      this.cancelDeadeye(audio);
+      return null;
+    }
 
     if (this.ammo <= 0) {
       this.startReload(audio);
@@ -500,6 +506,18 @@ export class McCree extends HeroBase {
     this.deadeyeTargets.clear();
   }
 
+  // Cancel Deadeye cleanly
+  cancelDeadeye(audio) {
+    if (!this.isDeadeyeActive) return;
+    this.isDeadeyeActive = false;
+    this.isUltActive = false;
+    this.deadeyeTargets.clear();
+    this.deadeyeFiringQueue = [];
+    if (audio && typeof audio.playSelectClick === 'function') {
+      audio.playSelectClick();
+    }
+  }
+
   // ==========================================================================
   // RELOAD MECHANICS
   // ==========================================================================
@@ -603,14 +621,34 @@ export class McCree extends HeroBase {
           if (inFOV && !wallBlocked) {
             let state = this.deadeyeTargets.get(target);
             if (!state) {
-              state = { lockTime: 0, damage: 0, isLocked: true, isLethal: false };
+              state = {
+                lockTime: 0,
+                damage: 0,
+                isLocked: true,
+                isLethal: false,
+                wasLethal: false,
+                target: target
+              };
               this.deadeyeTargets.set(target, state);
-              if (audio) audio.playDeadeyeLock();
+              if (audio && typeof audio.playDeadeyeLock === 'function') {
+                audio.playDeadeyeLock();
+              }
             }
             state.lockTime += dt;
-            // Accumulate lethal damage at 170 DMG/sec (Classic OW2 rate)
-            state.damage = Math.min(800, state.lockTime * 170);
-            state.isLethal = state.damage >= (target.hp || 200);
+            // Overwatch 2 Deadeye damage ramp: 130 DMG/s for the first 1.0s, then 260 DMG/s
+            const rampRate = state.lockTime > 1.0 ? 260 : 130;
+            state.damage = Math.min(1000, state.damage + rampRate * dt);
+
+            const targetHp = (target.hp !== undefined) ? target.hp : 200;
+            const isLethalNow = state.damage >= targetHp;
+
+            if (isLethalNow && !state.wasLethal) {
+              state.wasLethal = true;
+              if (audio && typeof audio.playDeadeyeLethalLock === 'function') {
+                audio.playDeadeyeLethalLock();
+              }
+            }
+            state.isLethal = isLethalNow;
           } else {
             // Lost line of sight behind wall or out of view: reset lock
             this.deadeyeTargets.delete(target);

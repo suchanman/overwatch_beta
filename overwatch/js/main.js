@@ -27,8 +27,9 @@ import { Tracer } from './heroes/Tracer.js';
 import { Genji } from './heroes/Genji.js';
 import { Reinhardt } from './heroes/Reinhardt.js';
 import { McCree } from './heroes/McCree.js';
+import { Doomfist } from './heroes/Doomfist.js';
 import { UIManager } from './ui/UIManager.js';
-import { buildReinhardtModel, buildTracerModel, buildGenjiModel, buildMcCreeModel, animateHeroWalk } from './entities/HeroModels.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel, buildMcCreeModel, buildDoomfistModel, animateHeroWalk } from './entities/HeroModels.js';
 
 class OverwatchGame {
   constructor() {
@@ -87,7 +88,8 @@ class OverwatchGame {
       tracer: new Tracer(),
       genji: new Genji(),
       reinhardt: new Reinhardt(),
-      mccree: new McCree()
+      mccree: new McCree(),
+      doomfist: new Doomfist()
     };
     this.heroes.mccree.onFanShotFired = (start, end) => {
       if (this.network && this.network.isConnected) {
@@ -184,6 +186,12 @@ class OverwatchGame {
 
   switchHero(heroKey) {
     if (!this.heroes[heroKey] || this.currentHero === this.heroes[heroKey]) return;
+
+    if (this.currentHero && this.currentHero.isDeadeyeActive && typeof this.currentHero.cancelDeadeye === 'function') {
+      this.currentHero.cancelDeadeye(this.audio);
+      if (this.ui) this.ui.clearDeadeyeMarkers();
+    }
+
     this.currentHeroKey = heroKey;
     this.currentHero = this.heroes[heroKey];
     this.attachHeroWeapon(this.currentHero);
@@ -222,6 +230,11 @@ class OverwatchGame {
       if (eIcon) eIcon.textContent = '💥';
       if (altIcon) altIcon.textContent = '⚡';
       if (altLbl) altLbl.textContent = 'FAN';
+    } else if (heroKey === 'doomfist') {
+      if (shiftIcon) shiftIcon.textContent = '💥';
+      if (eIcon) eIcon.textContent = '🌪️';
+      if (altIcon) altIcon.textContent = '👊';
+      if (altLbl) altLbl.textContent = 'PUNCH';
     }
 
     this.updateScoreboard();
@@ -554,6 +567,12 @@ class OverwatchGame {
     // Hide weapon viewmodel so corpse/hands vanish!
     if (this.currentHero && this.currentHero.weaponGroup) {
       this.currentHero.weaponGroup.visible = false;
+    }
+
+    // Cancel Deadeye cleanly if player died during channel
+    if (this.currentHero && this.currentHero.isDeadeyeActive && typeof this.currentHero.cancelDeadeye === 'function') {
+      this.currentHero.cancelDeadeye(this.audio);
+      if (this.ui) this.ui.clearDeadeyeMarkers();
     }
 
     // Top-Left Sliding Killfeed for local death (if not already logged by elimination event)
@@ -923,7 +942,13 @@ class OverwatchGame {
       currentRotY = 0;
       currentShowcaseHeroKey = heroKey;
 
-      if (heroKey === 'mccree') {
+      if (heroKey === 'doomfist') {
+        const data = buildDoomfistModel(showcaseGroup);
+        data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
+        if (heroTitle) heroTitle.textContent = '둠피스트 (DOOMFIST)';
+        ringMat.color.setHex(0xf99e1a);
+      } else if (heroKey === 'mccree') {
         const data = buildMcCreeModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
         currentAnimNodes = data.animNodes || null;
@@ -1041,7 +1066,7 @@ class OverwatchGame {
           modal.classList.add('hidden');
           requestLock();
         }
-      } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt' || action === 'mccree') {
+      } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt' || action === 'mccree' || action === 'doomfist') {
         this.switchHero(action);
         if (this.audio && this.audio.playSelectClick) {
           this.audio.playSelectClick();
@@ -1222,19 +1247,24 @@ class OverwatchGame {
       this.updatePlayerMovement(dt);
 
       // 2. Camera Transforms: Update position & Euler 'YXZ' rotation BEFORE combat inputs for 0-latency aim
-      this.camera.position.copy(this.playerPos);
-      const shake = this.shaker.getShakeOffset();
-      this.camera.position.x += shake.posX;
-      this.camera.position.y += shake.posY;
+      if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive && this.currentHero.meteorPhase === 'TARGETING') {
+        this.camera.position.set(this.playerPos.x, 22.0, this.playerPos.z + 12.0);
+        this.camera.lookAt(this.playerPos.x, 0.05, this.playerPos.z);
+      } else {
+        this.camera.position.copy(this.playerPos);
+        const shake = this.shaker.getShakeOffset();
+        this.camera.position.x += shake.posX;
+        this.camera.position.y += shake.posY;
 
-      // ENFORCE YXZ EULER ORDER: Completely eliminates camera roll / tilt / lying down!
-      this.camera.rotation.order = 'YXZ';
-      this.camera.rotation.set(
-        this.input.pitch + shake.rotX,
-        this.input.yaw + shake.rotY,
-        shake.rotZ * 0.12,
-        'YXZ'
-      );
+        // ENFORCE YXZ EULER ORDER: Completely eliminates camera roll / tilt / lying down!
+        this.camera.rotation.order = 'YXZ';
+        this.camera.rotation.set(
+          this.input.pitch + shake.rotX,
+          this.input.yaw + shake.rotY,
+          shake.rotZ * 0.12,
+          'YXZ'
+        );
+      }
       this.camera.updateMatrixWorld(true);
 
       // 3. Network Movement Send (25Hz Throttled)
@@ -1323,7 +1353,7 @@ class OverwatchGame {
     }
 
     // 12. Update Overwatch 2 HUD
-    this.ui.update(this.currentHero);
+    this.ui.update(this.currentHero, this.camera);
 
     // 13. Render 3D Scene
     this.renderer.render(this.scene, this.camera);
@@ -1340,8 +1370,8 @@ class OverwatchGame {
     moveVelocity.addScaledVector(forward, -move.z);
     moveVelocity.addScaledVector(right, move.x);
 
-    // Apply Speed (disable standard movement integration during Charge, Blink, Swift Strike, or Combat Roll)
-    if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing || this.currentHero.isRolling) {
+    // Apply Speed (disable standard movement integration during Charge, Blink, Swift Strike, Combat Roll, Punch Dash, or Slam)
+    if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing || this.currentHero.isRolling || this.currentHero.isPunchDashing || this.currentHero.isSlamming) {
       moveVelocity.set(0, 0, 0);
     }
 
@@ -1354,14 +1384,29 @@ class OverwatchGame {
     if (this.currentHero.name === 'MCCREE' && this.currentHero.isDeadeyeActive) {
       moveSpeed *= 0.35;
     }
+    // DOOMFIST: Movement speed reduced by 50% while charging Rocket Punch
+    if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isChargingPunch) {
+      moveSpeed *= 0.5;
+    }
+    // DOOMFIST: Movement speed increased by 2.8x during Meteor Strike targeting
+    if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive && this.currentHero.meteorPhase === 'TARGETING') {
+      moveSpeed *= 2.8;
+    }
     this.playerPos.addScaledVector(moveVelocity, moveSpeed * dt);
 
     // 1. Resolve 3D Obstacle & Platform Collisions
     const colResult = this.map.resolveCollision(this.playerPos, 0.55);
 
-    // 2. Gravity & Jump
-    this.velocityY += this.gravity * dt;
-    this.playerPos.y += this.velocityY * dt;
+    // 2. Gravity & Jump (disabled during Meteor Strike airborne targeting, Uppercut surge, or Seismic Slam arc)
+    if (this.currentHero.name === 'DOOMFIST' && (this.currentHero.isUppercutting || this.currentHero.isSlamming)) {
+      this.velocityY = 0;
+    } else if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive) {
+      this.velocityY = 0;
+      this.playerPos.y = colResult.groundY;
+    } else {
+      this.velocityY += this.gravity * dt;
+      this.playerPos.y += this.velocityY * dt;
+    }
 
     // 3. Multi-level Ground Collision
     if (this.playerPos.y <= colResult.groundY) {
@@ -1408,6 +1453,15 @@ class OverwatchGame {
 
     // Primary Fire (Left Click / Touch Fire)
     if (this.input.keys.primaryFire) {
+      if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive && this.currentHero.meteorPhase === 'TARGETING') {
+        this.input.keys.primaryFire = false;
+        this.currentHero.confirmMeteorStrike(this.camera, this.projectiles, this.audio, this.shaker, this.ui, allTargets, (target, dmg, head, kill) => {
+          if (target.id) this.network.sendHit(target.id, dmg, head);
+          this.handleCombatHit(target, dmg, head, kill);
+        });
+        return;
+      }
+
       const hitResult = this.currentHero.primaryFire(
         this.camera,
         this.scene,
@@ -1583,6 +1637,10 @@ class OverwatchGame {
             end: [beamEnd.x, beamEnd.y, beamEnd.z]
           });
         }
+      } else if (this.currentHero.name === 'DOOMFIST') {
+        if (!this.currentHero.isChargingPunch) {
+          this.currentHero.startRocketPunchCharge(this.audio);
+        }
       } else if (this.currentHero.secondaryFire) {
         this.currentHero.secondaryFire(
           this.camera,
@@ -1598,6 +1656,19 @@ class OverwatchGame {
           this.network.sendAction('shield_toggle', { active: false });
         }
         this.currentHero.setShieldActive(false, this.audio);
+      } else if (this.currentHero.name === 'DOOMFIST') {
+        if (this.currentHero.isChargingPunch) {
+          const didPunch = this.currentHero.releaseRocketPunch(this.camera, this.audio, this.shaker);
+          if (didPunch && this.network && this.network.isConnected) {
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+            forward.y = 0;
+            forward.normalize();
+            this.network.sendAction('doomfist_punch', {
+              dir: [forward.x, forward.y, forward.z],
+              charge: this.currentHero.punchChargeRatio
+            });
+          }
+        }
       }
     }
 
@@ -1636,6 +1707,8 @@ class OverwatchGame {
         });
       } else if (this.currentHero.name === 'MCCREE') {
         this.network.sendAction('mccree_roll', {});
+      } else if (this.currentHero.name === 'DOOMFIST') {
+        this.network.sendAction('doomfist_slam', {});
       }
     }
 

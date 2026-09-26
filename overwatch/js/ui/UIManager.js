@@ -69,6 +69,12 @@ export class UIManager {
     this.shieldHpCurrentEl = document.getElementById('shield-hp-current');
     this.shieldBarFill = document.getElementById('shield-bar-fill');
 
+    // McCree Deadeye (황야의 무법자) Cinematic Overlay & Target Tracking
+    this.deadeyeVignette = document.getElementById('deadeye-vignette');
+    this.deadeyeTimerBar = document.getElementById('deadeye-timer-bar');
+    this.deadeyeTargetsContainer = document.getElementById('deadeye-targets-container');
+    this.deadeyeMarkers = new Map(); // target -> { el, wasLethal, shrinkCircle, ... }
+
     this.eliminations = 0;
     this.streak = 0;
   }
@@ -79,6 +85,17 @@ export class UIManager {
 
   hideHUD() {
     this.hudOverlay.classList.add('hidden');
+    if (this.deadeyeVignette) this.deadeyeVignette.classList.add('hidden');
+    this.clearDeadeyeMarkers();
+  }
+
+  clearDeadeyeMarkers() {
+    for (const data of this.deadeyeMarkers.values()) {
+      if (data.el && data.el.parentNode) {
+        data.el.parentNode.removeChild(data.el);
+      }
+    }
+    this.deadeyeMarkers.clear();
   }
 
   // ==========================================================================
@@ -244,7 +261,7 @@ export class UIManager {
   // ==========================================================================
   // UPDATE HUD STATS (Per Frame)
   // ==========================================================================
-  update(hero) {
+  update(hero, camera) {
     // 1. Hero Identity & Portrait
     this.heroNameLabel.textContent = hero.name;
     this.heroPortraitEl.className = `hero-portrait portrait-${hero.name.toLowerCase()}`;
@@ -258,11 +275,14 @@ export class UIManager {
         else if (hero.name === 'GENJI') { a1Icon.textContent = '🗡️'; a2Icon.textContent = '🛡️'; }
         else if (hero.name === 'REINHARDT') { a1Icon.textContent = '🚀'; a2Icon.textContent = '🔥'; }
         else if (hero.name === 'MCCREE') { a1Icon.textContent = '🔄'; a2Icon.textContent = '💥'; }
+        else if (hero.name === 'DOOMFIST') { a1Icon.textContent = '💥'; a2Icon.textContent = '🌪️'; }
       }
     }
 
     // 2. Numeric Health & Trailing Health Bar (skill.md 3.4)
-    this.hpCurrentEl.textContent = Math.ceil(hero.hp);
+    const baseHp = Math.ceil(hero.hp);
+    const shields = Math.ceil(hero.shields || 0);
+    this.hpCurrentEl.textContent = baseHp + shields;
     this.hpMaxEl.textContent = hero.maxHp;
 
     const hpPct = Math.max(0, (hero.hp / hero.maxHp) * 100);
@@ -333,6 +353,11 @@ export class UIManager {
       this.ammoMaxEl.textContent = '';
       this.ammoPipsBar.style.display = 'none';
       this.reloadPrompt.classList.add('hidden');
+    } else if (hero.name === 'DOOMFIST') {
+      this.ammoPipsBar.style.display = 'flex';
+      this.ammoCurrentEl.textContent = hero.ammo;
+      this.ammoMaxEl.textContent = '4';
+      this.reloadPrompt.classList.add('hidden');
     } else {
       this.ammoPipsBar.style.display = 'flex';
       this.ammoCurrentEl.textContent = hero.ammo;
@@ -351,6 +376,80 @@ export class UIManager {
 
     // 7. Reinhardt Center Barrier Shield HUD
     this.updateReinhardtShield(hero);
+
+    // 8. McCree Deadeye Ultimate HUD & Target Reticles
+    this.updateDeadeyeOverlay(hero, camera);
+
+    // 9. Doomfist Rocket Punch Charge & Meteor Strike Targeting
+    this.updateDoomfistHUD(hero);
+  }
+
+  updateDoomfistHUD(hero) {
+    let chargeHud = document.getElementById('doomfist-charge-hud');
+    let meteorPrompt = document.getElementById('doomfist-meteor-prompt');
+
+    if (!chargeHud) {
+      chargeHud = document.createElement('div');
+      chargeHud.id = 'doomfist-charge-hud';
+      chargeHud.className = 'doomfist-charge-hud hidden';
+      chargeHud.innerHTML = `
+        <div class="df-charge-header">
+          <span class="df-charge-title">ROCKET PUNCH CHARGE</span>
+          <span id="df-charge-pct-text" class="df-charge-pct">0%</span>
+        </div>
+        <div class="df-charge-track">
+          <div id="df-charge-fill-bar" class="df-charge-fill"></div>
+          <div class="df-tier t1"></div>
+          <div class="df-tier t2"></div>
+          <div class="df-tier t3"></div>
+        </div>
+        <div class="df-charge-hint">RELEASE TO UNLEASH PUNCH</div>
+      `;
+      document.body.appendChild(chargeHud);
+    }
+
+    if (!meteorPrompt) {
+      meteorPrompt = document.createElement('div');
+      meteorPrompt.id = 'doomfist-meteor-prompt';
+      meteorPrompt.className = 'doomfist-meteor-prompt hidden';
+      meteorPrompt.innerHTML = `
+        <div class="meteor-prompt-title">METEOR STRIKE (파멸의 일격)</div>
+        <div class="meteor-zone-legend">
+          <div class="zone-badge zone-core">
+            <span class="zone-dot core-dot"></span>
+            <span class="zone-text">중심부 (3m): <strong class="dmg-val core-val">300 치명타 피해</strong></span>
+          </div>
+          <div class="zone-badge zone-outer">
+            <span class="zone-dot outer-dot"></span>
+            <span class="zone-text">외곽부 (8.5m): <strong class="dmg-val outer-val">50~180 피해</strong></span>
+          </div>
+        </div>
+        <div class="meteor-prompt-sub">[좌클릭] 또는 [Q] 낙하 확정 (CONFIRM IMPACT)</div>
+      `;
+      document.body.appendChild(meteorPrompt);
+    }
+
+    if (hero && hero.name === 'DOOMFIST') {
+      if (hero.isChargingPunch) {
+        chargeHud.classList.remove('hidden');
+        const pct = Math.floor((hero.punchChargeRatio || 0) * 100);
+        const fillBar = document.getElementById('df-charge-fill-bar');
+        const pctText = document.getElementById('df-charge-pct-text');
+        if (fillBar) fillBar.style.width = `${pct}%`;
+        if (pctText) pctText.textContent = `${pct}%`;
+      } else {
+        chargeHud.classList.add('hidden');
+      }
+
+      if (hero.isMeteorActive && hero.meteorPhase === 'TARGETING') {
+        meteorPrompt.classList.remove('hidden');
+      } else {
+        meteorPrompt.classList.add('hidden');
+      }
+    } else {
+      if (chargeHud) chargeHud.classList.add('hidden');
+      if (meteorPrompt) meteorPrompt.classList.add('hidden');
+    }
   }
 
   updateReinhardtShield(hero) {
@@ -385,5 +484,204 @@ export class UIManager {
     } else {
       this.reinhardtShieldHud.classList.add('hidden');
     }
+  }
+
+  // ==========================================================================
+  // MCCREE DEADEYE (황야의 무법자) TARGET RETICLES & LETHAL SKULL
+  // ==========================================================================
+  updateDeadeyeOverlay(hero, camera) {
+    const isDeadeye = hero && hero.name === 'MCCREE' && hero.isDeadeyeActive;
+
+    if (!isDeadeye) {
+      if (this.deadeyeVignette && !this.deadeyeVignette.classList.contains('hidden')) {
+        this.deadeyeVignette.classList.add('hidden');
+      }
+      if (this.deadeyeMarkers.size > 0) {
+        this.clearDeadeyeMarkers();
+      }
+      return;
+    }
+
+    // Show Sunset High Noon Vignette
+    if (this.deadeyeVignette && this.deadeyeVignette.classList.contains('hidden')) {
+      this.deadeyeVignette.classList.remove('hidden');
+    }
+
+    // Update Deadeye remaining channel bar
+    if (this.deadeyeTimerBar && hero.deadeyeDuration > 0) {
+      const pct = Math.max(0, Math.min(100, (hero.deadeyeTimer / hero.deadeyeDuration) * 100));
+      this.deadeyeTimerBar.style.width = `${pct}%`;
+    }
+
+    if (!this.deadeyeTargetsContainer || !camera || !hero.deadeyeTargets) return;
+
+    const activeTargets = new Set();
+    const camPos = camera.position;
+    const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+
+    for (const [target, state] of hero.deadeyeTargets.entries()) {
+      if (!target || target.isDead) continue;
+
+      // Determine 3D world position of enemy's head / face
+      const headWorldPos = new THREE.Vector3();
+      if (target.headMesh && typeof target.headMesh.getWorldPosition === 'function') {
+        target.headMesh.getWorldPosition(headWorldPos);
+      } else if (target.group && target.group.position) {
+        headWorldPos.copy(target.group.position).add(new THREE.Vector3(0, 1.8, 0));
+      } else {
+        continue;
+      }
+
+      // Check if target is behind camera plane
+      const toTarget = headWorldPos.clone().sub(camPos).normalize();
+      if (camForward.dot(toTarget) <= 0.1) continue;
+
+      // Project 3D world coordinate to 2D NDC [-1, 1]
+      const proj = headWorldPos.clone().project(camera);
+      if (proj.z > 1.0) continue;
+
+      // Convert to screen pixel coordinates
+      const sx = (proj.x * 0.5 + 0.5) * window.innerWidth;
+      const sy = (-(proj.y * 0.5) + 0.5) * window.innerHeight;
+
+      // Discard targets that are outside screen viewport
+      if (sx < -60 || sx > window.innerWidth + 60 || sy < -60 || sy > window.innerHeight + 60) {
+        continue;
+      }
+
+      // Calculate damage charge ratio against enemy current HP
+      const targetHp = Math.max(1, (target.hp !== undefined) ? target.hp : 200);
+      const currentDmg = Math.floor(state.damage || 0);
+      const progress = Math.min(1.0, currentDmg / targetHp);
+      const isLethal = state.isLethal || progress >= 1.0;
+
+      // Shrink outer circle radius smoothly from 46px down to 12px
+      const maxR = 46;
+      const minR = 12;
+      const currentR = Math.max(minR, Math.round(maxR - (maxR - minR) * progress));
+
+      // Get or create cached DOM marker element
+      let markerData = this.deadeyeMarkers.get(target);
+      if (!markerData) {
+        markerData = this.createDeadeyeMarkerElement(target);
+        this.deadeyeTargetsContainer.appendChild(markerData.el);
+        this.deadeyeMarkers.set(target, markerData);
+      }
+
+      activeTargets.add(target);
+
+      // Position over target's face
+      markerData.el.style.left = `${sx.toFixed(1)}px`;
+      markerData.el.style.top = `${sy.toFixed(1)}px`;
+
+      // Update state: Charging vs Lethal Skull
+      if (isLethal) {
+        if (!markerData.wasLethal) {
+          markerData.wasLethal = true;
+          markerData.el.classList.remove('is-charging');
+          markerData.el.classList.add('is-lethal');
+        }
+      } else {
+        if (markerData.wasLethal) {
+          markerData.wasLethal = false;
+          markerData.el.classList.remove('is-lethal');
+          markerData.el.classList.add('is-charging');
+        }
+
+        // Update shrinking circle radius and ticks
+        if (markerData.shrinkCircle) {
+          markerData.shrinkCircle.setAttribute('r', currentR);
+        }
+        if (markerData.notchT) {
+          markerData.notchT.setAttribute('y1', 60 - currentR - 7);
+          markerData.notchT.setAttribute('y2', 60 - currentR);
+        }
+        if (markerData.notchB) {
+          markerData.notchB.setAttribute('y1', 60 + currentR);
+          markerData.notchB.setAttribute('y2', 60 + currentR + 7);
+        }
+        if (markerData.notchL) {
+          markerData.notchL.setAttribute('x1', 60 - currentR - 7);
+          markerData.notchL.setAttribute('x2', 60 - currentR);
+        }
+        if (markerData.notchR) {
+          markerData.notchR.setAttribute('x1', 60 + currentR);
+          markerData.notchR.setAttribute('x2', 60 + currentR + 7);
+        }
+        if (markerData.progressLabel) {
+          markerData.progressLabel.textContent = `${Math.floor(progress * 100)}% (${currentDmg}/${Math.ceil(targetHp)})`;
+        }
+      }
+    }
+
+    // Clean up any targets that lost line of sight, moved out of FOV, or died
+    for (const [t, data] of this.deadeyeMarkers.entries()) {
+      if (!activeTargets.has(t)) {
+        if (data.el && data.el.parentNode) {
+          data.el.parentNode.removeChild(data.el);
+        }
+        this.deadeyeMarkers.delete(t);
+      }
+    }
+  }
+
+  createDeadeyeMarkerElement(target) {
+    const el = document.createElement('div');
+    el.className = 'deadeye-marker is-charging';
+
+    el.innerHTML = `
+      <!-- Center dot on target head -->
+      <div class="deadeye-center-point"></div>
+
+      <!-- Target Name Label -->
+      <div class="deadeye-target-tag">${target.name || '적 요원'}</div>
+
+      <!-- 1. Charging Circle (Shrinks as damage builds) -->
+      <div class="deadeye-charge-box">
+        <svg class="deadeye-ring-svg" viewBox="0 0 120 120">
+          <circle class="deadeye-outer-ring" cx="60" cy="60" r="48"></circle>
+          <circle class="deadeye-shrink-circle" cx="60" cy="60" r="46"></circle>
+          <line class="deadeye-notch notch-t" x1="60" y1="7" x2="60" y2="14"></line>
+          <line class="deadeye-notch notch-b" x1="60" y1="106" x2="60" y2="113"></line>
+          <line class="deadeye-notch notch-l" x1="7" y1="60" x2="14" y2="60"></line>
+          <line class="deadeye-notch notch-r" x1="106" y1="60" x2="113" y2="60"></line>
+        </svg>
+        <div class="deadeye-progress-info">0%</div>
+      </div>
+
+      <!-- 2. Lethal Skull Box (Appears with snap when damage >= HP) -->
+      <div class="deadeye-skull-box">
+        <div class="deadeye-skull-aura"></div>
+        <div class="deadeye-lock-brackets">
+          <span class="deadeye-bracket-corner c-tl"></span>
+          <span class="deadeye-bracket-corner c-tr"></span>
+          <span class="deadeye-bracket-corner c-bl"></span>
+          <span class="deadeye-bracket-corner c-br"></span>
+        </div>
+        <svg class="deadeye-skull-svg" viewBox="0 0 40 40">
+          <!-- Stylized OW2 Lethal Skull -->
+          <path class="skull-path-head" d="M10 16 C10 8, 15 4, 20 4 C25 4, 30 8, 30 16 C30 21, 28 25, 25 27 L25 32 L15 32 L15 27 C12 25, 10 21, 10 16 Z"></path>
+          <ellipse class="skull-path-socket" cx="16" cy="16" rx="2.8" ry="3.8"></ellipse>
+          <ellipse class="skull-path-socket" cx="24" cy="16" rx="2.8" ry="3.8"></ellipse>
+          <polygon class="skull-path-nose" points="20,21 18.5,25 21.5,25"></polygon>
+          <line class="skull-path-tooth" x1="18" y1="28" x2="18" y2="32"></line>
+          <line class="skull-path-tooth" x1="20" y1="28" x2="20" y2="32"></line>
+          <line class="skull-path-tooth" x1="22" y1="28" x2="22" y2="32"></line>
+        </svg>
+        <div class="deadeye-lethal-badge">💀 한방 처치</div>
+      </div>
+    `;
+
+    return {
+      el,
+      wasLethal: false,
+      shrinkCircle: el.querySelector('.deadeye-shrink-circle'),
+      notchT: el.querySelector('.notch-t'),
+      notchB: el.querySelector('.notch-b'),
+      notchL: el.querySelector('.notch-l'),
+      notchR: el.querySelector('.notch-r'),
+      progressLabel: el.querySelector('.deadeye-progress-info'),
+      skullBox: el.querySelector('.deadeye-skull-box')
+    };
   }
 }

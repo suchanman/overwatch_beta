@@ -119,6 +119,7 @@ export class InputManager {
       if (key === '2' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('genji');
       if (key === '3' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('reinhardt');
       if (key === '4' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('mccree');
+      if (key === '5' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('doomfist');
       if (key === 'h' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('toggle_modal');
     });
 

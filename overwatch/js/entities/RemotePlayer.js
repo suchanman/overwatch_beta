@@ -1,4 +1,4 @@
-import { buildReinhardtModel, buildTracerModel, buildGenjiModel, buildMcCreeModel, animateHeroWalk } from './HeroModels.js';
+import { buildReinhardtModel, buildTracerModel, buildGenjiModel, buildMcCreeModel, buildDoomfistModel, animateHeroWalk } from './HeroModels.js';
 
 export class RemotePlayer {
   constructor(scene, playerData) {
@@ -7,7 +7,7 @@ export class RemotePlayer {
     this.name = playerData.name || '플레이어';
     this.heroKey = playerData.hero || 'tracer';
 
-    this.maxHp = playerData.maxHp || (this.heroKey === 'reinhardt' ? 1000 : (this.heroKey === 'mccree' ? 450 : (this.heroKey === 'genji' ? 400 : 300)));
+    this.maxHp = playerData.maxHp || (this.heroKey === 'reinhardt' ? 1000 : (this.heroKey === 'doomfist' ? 450 : (this.heroKey === 'mccree' ? 450 : (this.heroKey === 'genji' ? 400 : 300))));
     this.hp = playerData.hp !== undefined ? playerData.hp : this.maxHp;
     this.trailingHp = this.hp;
     this.trailDelay = 0;
@@ -23,11 +23,13 @@ export class RemotePlayer {
     this.targetYaw = (playerData.rot && playerData.rot[1]) || 0;
     this.targetPitch = (playerData.rot && playerData.rot[0]) || 0;
 
-    // Hit reaction
+    // Hit reaction & Knockback physics
     this.flashTimer = 0;
     this.flashMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.squashScale = new THREE.Vector3(1, 1, 1);
     this.targetSquash = new THREE.Vector3(1, 1, 1);
+    this.knockbackVelocity = new THREE.Vector3();
+    this.isAirborne = false;
 
     // Root 3D Group
     this.group = new THREE.Group();
@@ -91,6 +93,8 @@ export class RemotePlayer {
       this.shieldMesh = modelData.shieldMesh;
     } else if (heroKey === 'mccree') {
       modelData = buildMcCreeModel(this.modelGroup);
+    } else if (heroKey === 'doomfist') {
+      modelData = buildDoomfistModel(this.modelGroup);
     } else if (heroKey === 'genji') {
       modelData = buildGenjiModel(this.modelGroup);
     } else {
@@ -283,6 +287,12 @@ export class RemotePlayer {
     this.rollTimer = 0.35;
   }
 
+  applyKnockback(vector, force = 1.0) {
+    if (this.isDead) return;
+    if (!this.knockbackVelocity) this.knockbackVelocity = new THREE.Vector3();
+    this.knockbackVelocity.addScaledVector(vector, force);
+  }
+
   // ==========================================================================
   // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp, Walking Motion)
   // ==========================================================================
@@ -329,8 +339,13 @@ export class RemotePlayer {
     }
     this.lastPos.copy(this.group.position);
 
-    // 1. Position Lerp (smooth 25Hz -> 60FPS)
-    this.group.position.lerp(this.targetPos, Math.min(1.0, dt * 18.0));
+    // 1. Position Lerp & Knockback integration
+    if (this.knockbackVelocity && this.knockbackVelocity.lengthSq() > 0.01) {
+      this.group.position.addScaledVector(this.knockbackVelocity, dt);
+      this.knockbackVelocity.multiplyScalar(Math.pow(0.12, dt));
+    } else {
+      this.group.position.lerp(this.targetPos, Math.min(1.0, dt * 18.0));
+    }
 
     // 2. Rotation Slerp / Lerp
     let diffYaw = this.targetYaw - this.group.rotation.y;

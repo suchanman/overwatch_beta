@@ -17,6 +17,7 @@ export class ProjectileManager {
     this.bulletBeams = [];
     this.motionStreaks = [];
     this.particles = [];
+    this.groundVFX = [];
     this.onProjectileSpawned = null; // Replicate projectiles across multiplayer network
   }
 
@@ -115,6 +116,206 @@ export class ProjectileManager {
       velocities,
       life: 0.28,
       maxLife: 0.28
+    });
+  }
+
+  // 1.7 Doomfist Seismic Slam Shockwave (Expanding Ground Cone & Radial Earth Cracks)
+  spawnSeismicShockwave(origin, forwardDir, range = 10.0) {
+    const group = new THREE.Group();
+
+    // 1. Shockwave ground cone sector (80-degree forward fan lying flat on ground)
+    const shape = new THREE.Shape();
+    const halfAngle = THREE.MathUtils.degToRad(40);
+    shape.moveTo(0, 0);
+    const steps = 24;
+    for (let i = 0; i <= steps; i++) {
+      const a = -halfAngle + (halfAngle * 2 * i) / steps;
+      const x = Math.sin(a) * range;
+      const y = Math.cos(a) * range;
+      shape.lineTo(x, y);
+    }
+    shape.closePath();
+
+    const shapeGeo = new THREE.ShapeGeometry(shape);
+    shapeGeo.rotateX(Math.PI / 2); // Rotate +PI/2 so y -> +z (forward in local space)
+    const shapeMat = new THREE.MeshBasicMaterial({
+      color: 0x00d2ff, // Bright electric Overwatch cyan
+      transparent: true,
+      opacity: 0.78,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const fanMesh = new THREE.Mesh(shapeGeo, shapeMat);
+    group.add(fanMesh);
+
+    // Inner bright energy core
+    const coreShape = new THREE.Shape();
+    coreShape.moveTo(0, 0);
+    for (let i = 0; i <= steps; i++) {
+      const a = -halfAngle + (halfAngle * 2 * i) / steps;
+      const x = Math.sin(a) * (range * 0.45);
+      const y = Math.cos(a) * (range * 0.45);
+      coreShape.lineTo(x, y);
+    }
+    coreShape.closePath();
+    const coreGeo = new THREE.ShapeGeometry(coreShape);
+    coreGeo.rotateX(Math.PI / 2); // Rotate +PI/2 so y -> +z (forward in local space)
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.88,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.position.y = 0.005;
+    group.add(coreMesh);
+
+    // 2. Glowing outer shockwave perimeter arc (points along local +Z forward)
+    const rimPoints = [];
+    for (let i = 0; i <= 32; i++) {
+      const a = -halfAngle + (halfAngle * 2 * i) / 32;
+      rimPoints.push(new THREE.Vector3(Math.sin(a) * range, 0.015, Math.cos(a) * range));
+    }
+    const rimGeo = new THREE.BufferGeometry().setFromPoints(rimPoints);
+    const rimMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 4, transparent: true, opacity: 0.95 });
+    const rimLine = new THREE.Line(rimGeo, rimMat);
+    group.add(rimLine);
+
+    // 3. 3D vertical shockwave energy crest wave (gives high first-person visibility)
+    const crestVerts = [];
+    const crestSteps = 24;
+    for (let i = 0; i < crestSteps; i++) {
+      const a0 = -halfAngle + (halfAngle * 2 * i) / crestSteps;
+      const a1 = -halfAngle + (halfAngle * 2 * (i + 1)) / crestSteps;
+      const h0 = 0.55 * Math.cos((a0 / halfAngle) * (Math.PI / 2));
+      const h1 = 0.55 * Math.cos((a1 / halfAngle) * (Math.PI / 2));
+      const x0 = Math.sin(a0) * range, z0 = Math.cos(a0) * range;
+      const x1 = Math.sin(a1) * range, z1 = Math.cos(a1) * range;
+
+      crestVerts.push(
+        x0, 0.02, z0,
+        x1, 0.02, z1,
+        x0, h0, z0,
+        x0, h0, z0,
+        x1, 0.02, z1,
+        x1, h1, z1
+      );
+    }
+    const crestGeo = new THREE.BufferGeometry();
+    crestGeo.setAttribute('position', new THREE.Float32BufferAttribute(crestVerts, 3));
+    const crestMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const crestMesh = new THREE.Mesh(crestGeo, crestMat);
+    group.add(crestMesh);
+
+    // 4. Ground crack lines radiating forward with glowing fracture effect
+    const crackMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.95 });
+    for (let c = -3; c <= 3; c++) {
+      const crackAngle = c * 0.16;
+      const crackLen = range * (0.65 + Math.random() * 0.35);
+      const cp = [
+        new THREE.Vector3(0, 0.02, 0),
+        new THREE.Vector3(Math.sin(crackAngle) * crackLen * 0.35 + (Math.random() - 0.5) * 0.3, 0.02, Math.cos(crackAngle) * crackLen * 0.35),
+        new THREE.Vector3(Math.sin(crackAngle) * crackLen * 0.7 + (Math.random() - 0.5) * 0.3, 0.02, Math.cos(crackAngle) * crackLen * 0.7),
+        new THREE.Vector3(Math.sin(crackAngle) * crackLen, 0.02, Math.cos(crackAngle) * crackLen)
+      ];
+      const crackGeo = new THREE.BufferGeometry().setFromPoints(cp);
+      const crackLine = new THREE.Line(crackGeo, crackMat);
+      group.add(crackLine);
+    }
+
+    // Orient group along forwardDir and place directly at ground level
+    group.position.set(origin.x, origin.y, origin.z);
+    const angle = Math.atan2(forwardDir.x, forwardDir.z);
+    group.rotation.y = angle;
+
+    this.scene.add(group);
+
+    // Spawn earth debris and electric sparks bursting forward in front of Doomfist
+    this.spawnHitSparks(origin.clone().addScaledVector(forwardDir, 1.5), new THREE.Vector3(0, 1, 0), 0x00f0ff, 20);
+    this.spawnHitSparks(origin.clone().addScaledVector(forwardDir, 4.5), new THREE.Vector3(0, 1, 0), 0x38bdf8, 16);
+    this.spawnHitSparks(origin.clone().addScaledVector(forwardDir, 8.0), new THREE.Vector3(0, 1, 0), 0xfbbf24, 16);
+
+    this.groundVFX.push({
+      group,
+      life: 0.75,
+      maxLife: 0.75,
+      onUpdate: (progress) => {
+        const scaleVal = THREE.MathUtils.lerp(0.2, 1.02, Math.min(1.0, progress * 3.0));
+        group.scale.set(scaleVal, 1.0, scaleVal);
+        shapeMat.opacity = Math.max(0, (1 - progress) * 0.78);
+        coreMat.opacity = Math.max(0, (1 - progress * 1.4) * 0.88);
+        rimMat.opacity = Math.max(0, (1 - progress) * 0.95);
+        crestMat.opacity = Math.max(0, (1 - progress * 1.2) * 0.85);
+        crackMat.opacity = Math.max(0, (1 - progress) * 0.95);
+      }
+    });
+  }
+
+  // 1.8 Doomfist Meteor Strike Crater VFX (Deep Crimson Center, Translucent Amber Edge)
+  spawnMeteorImpactCrater(centerPos, innerRadius = 3.0, outerRadius = 8.5) {
+    const group = new THREE.Group();
+
+    // 1. Intense inner blast core (3m direct hit zone) - Deep Crimson Red
+    const innerGeo = new THREE.RingGeometry(0, innerRadius, 32);
+    innerGeo.rotateX(-Math.PI / 2);
+    const innerMat = new THREE.MeshBasicMaterial({
+      color: 0xdc2626,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide
+    });
+    const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+    group.add(innerMesh);
+
+    // 2. Outer blast zone (8.5m splash area) - Translucent Amber / Orange
+    const outerGeo = new THREE.RingGeometry(innerRadius, outerRadius, 36);
+    outerGeo.rotateX(-Math.PI / 2);
+    const outerMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide
+    });
+    const outerMesh = new THREE.Mesh(outerGeo, outerMat);
+    group.add(outerMesh);
+
+    // 3. Shockwave glowing white/gold border ring
+    const borderGeo = new THREE.RingGeometry(outerRadius * 0.96, outerRadius, 36);
+    borderGeo.rotateX(-Math.PI / 2);
+    const borderMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide
+    });
+    const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+    group.add(borderMesh);
+
+    group.position.set(centerPos.x, centerPos.y + 0.04, centerPos.z);
+    this.scene.add(group);
+
+    // Explosive blast particles
+    this.spawnHitSparks(centerPos, new THREE.Vector3(0, 1, 0), 0xdc2626, 32);
+    this.spawnHitSparks(centerPos, new THREE.Vector3(0, 1, 0), 0xfbbf24, 28);
+
+    this.groundVFX.push({
+      group,
+      life: 0.85,
+      maxLife: 0.85,
+      onUpdate: (progress) => {
+        const scaleVal = THREE.MathUtils.lerp(0.5, 1.15, Math.min(1.0, progress * 3.0));
+        group.scale.set(scaleVal, 1.0, scaleVal);
+        innerMat.opacity = Math.max(0, (1 - progress) * 0.9);
+        outerMat.opacity = Math.max(0, (1 - progress) * 0.45);
+        borderMat.opacity = Math.max(0, (1 - progress) * 0.95);
+      }
     });
   }
 
@@ -414,11 +615,46 @@ export class ProjectileManager {
     }
   }
 
+  // 7. Doomfist Hand Cannon Pellet (7-pellet shotgun spread)
+  spawnDoomfistPellet(origin, direction, damage = 15, onHitCallback = null) {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.065, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff })
+    );
+    mesh.position.copy(origin);
+    this.scene.add(mesh);
+
+    this.projectiles.push({
+      type: 'doomfist_pellet',
+      mesh,
+      velocity: direction.clone().multiplyScalar(65),
+      life: 0.28,
+      damage,
+      onHit: onHitCallback
+    });
+  }
+
   // ==========================================================================
   // TICK UPDATE LOOP (Motion Streaks, Particles, Swept Collision & Replication)
   // ==========================================================================
   update(dt, bots, onHitCallback, map = null, playerContext = null) {
-    // 0. Update Motion Streaks (Fade & Radial Thinning)
+    // 0. Update Ground Visual Effects (Seismic Slam shockwave & Meteor Strike craters)
+    for (let i = this.groundVFX.length - 1; i >= 0; i--) {
+      const vfx = this.groundVFX[i];
+      vfx.life -= dt;
+      const progress = 1.0 - Math.max(0, vfx.life / vfx.maxLife);
+      if (vfx.onUpdate) vfx.onUpdate(progress, dt);
+      if (vfx.life <= 0) {
+        this.scene.remove(vfx.group);
+        vfx.group.traverse((obj) => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) obj.material.dispose();
+        });
+        this.groundVFX.splice(i, 1);
+      }
+    }
+
+    // 0.1 Update Motion Streaks (Fade & Radial Thinning)
     for (let i = this.motionStreaks.length - 1; i >= 0; i--) {
       const s = this.motionStreaks[i];
       s.life -= dt;
@@ -953,6 +1189,47 @@ export class ProjectileManager {
                 hit = true;
                 break;
               }
+            }
+          }
+        }
+
+        if (hit || p.life <= 0) {
+          this.scene.remove(p.mesh);
+          p.mesh.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
+          this.projectiles.splice(i, 1);
+        }
+
+      // --- DOOMFIST HAND CANNON PELLET ---
+      } else if (p.type === 'doomfist_pellet') {
+        p.life -= dt;
+        const prevPos = p.mesh.position.clone();
+        p.mesh.position.addScaledVector(p.velocity, dt);
+
+        let hit = false;
+        if (map && typeof map.checkProjectileHit === 'function') {
+          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.15);
+          if (wallHit.hit) {
+            hit = true;
+            this.spawnHitSparks(wallHit.point || prevPos, new THREE.Vector3(0, 1, 0), 0x00f0ff, 6);
+          }
+        }
+
+        if (!hit) {
+          for (const bot of bots) {
+            if (bot.isDead) continue;
+            const bPos = bot.group ? bot.group.position : bot.position;
+            if (!bPos) continue;
+            const dist = p.mesh.position.distanceTo(bPos.clone().add(new THREE.Vector3(0, 1.1, 0)));
+            if (dist < 1.35) {
+              hit = true;
+              const finalBlow = bot.takeDamage(p.damage, false, p.velocity.clone().normalize());
+              if (p.onHit) p.onHit(bot, p.damage, false, finalBlow);
+              onHitCallback(bot, p.damage, false, finalBlow);
+              this.spawnHitSparks(p.mesh.position, new THREE.Vector3(0, 1, 0), 0x00f0ff, 8);
+              break;
             }
           }
         }

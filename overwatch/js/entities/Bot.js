@@ -23,10 +23,12 @@ export class TrainingBot {
     this.respawnTimer = 0;
     this.spawnPos = new THREE.Vector3(x, 0, z);
 
-    // Hit reaction
+    // Hit reaction & Knockback physics
     this.flashTimer = 0;
     this.squashScale = new THREE.Vector3(1, 1, 1);
     this.targetSquash = new THREE.Vector3(1, 1, 1);
+    this.knockbackVelocity = new THREE.Vector3();
+    this.isAirborne = false;
 
     // Patrol movement
     this.patrolCenter = new THREE.Vector3(x, 0, z);
@@ -202,7 +204,7 @@ export class TrainingBot {
     this.targetSquash.set(1.22, 0.78, 1.22);
 
     // Knockback
-    if (hitDir) {
+    if (hitDir && (!this.knockbackVelocity || this.knockbackVelocity.lengthSq() < 0.01)) {
       this.group.position.addScaledVector(hitDir, 0.3);
     }
 
@@ -213,6 +215,13 @@ export class TrainingBot {
       return true; // Final Blow
     }
     return false;
+  }
+
+  applyKnockback(vector, force = 1.0) {
+    if (this.isDead) return;
+    if (!this.knockbackVelocity) this.knockbackVelocity = new THREE.Vector3();
+    this.knockbackVelocity.addScaledVector(vector, force);
+    this.isAirborne = true;
   }
 
   die() {
@@ -236,6 +245,9 @@ export class TrainingBot {
     this.trailingHp = this.maxHp;
     this.hpSprite.visible = true;
     this.group.position.copy(this.spawnPos);
+
+    this.knockbackVelocity = new THREE.Vector3();
+    this.isAirborne = false;
 
     // Reset mesh parts
     this.parts.forEach((p) => {
@@ -305,16 +317,33 @@ export class TrainingBot {
     this.targetSquash.lerp(new THREE.Vector3(1, 1, 1), 0.15);
     this.group.scale.copy(this.squashScale);
 
-    // 4. Gentle Patrol & Face Player
-    this.patrolAngle += 0.4 * dt;
-    const targetX = this.patrolCenter.x + Math.cos(this.patrolAngle) * this.patrolRadius;
-    const targetZ = this.patrolCenter.z + Math.sin(this.patrolAngle) * this.patrolRadius;
+    // 4. Knockback & Physical Velocity Integration (Rocket Punch, Uppercut, Seismic Slam)
+    if (this.knockbackVelocity && this.knockbackVelocity.lengthSq() > 0.01) {
+      this.group.position.addScaledVector(this.knockbackVelocity, dt);
+      // Horizontal drag
+      this.knockbackVelocity.x *= Math.pow(0.12, dt);
+      this.knockbackVelocity.z *= Math.pow(0.12, dt);
+      // Gravity
+      this.knockbackVelocity.y -= 26.0 * dt;
 
-    this.group.position.x += (targetX - this.group.position.x) * this.moveSpeed * dt;
-    this.group.position.z += (targetZ - this.group.position.z) * this.moveSpeed * dt;
+      // Floor collision check
+      const floorY = (this.spawnPos ? this.spawnPos.y : 0);
+      if (this.group.position.y <= floorY) {
+        this.group.position.y = floorY;
+        this.knockbackVelocity.y = 0;
+        this.isAirborne = false;
+      }
+    } else {
+      // Normal gentle patrol & hover bobbing only when settled
+      this.group.position.y = (this.spawnPos ? this.spawnPos.y : 0) + 0.15 + Math.sin(Date.now() * 0.003 + this.id) * 0.1;
 
-    // Hover floating bobbing
-    this.group.position.y = 0.15 + Math.sin(Date.now() * 0.003 + this.id) * 0.1;
+      this.patrolAngle += 0.4 * dt;
+      const targetX = this.patrolCenter.x + Math.cos(this.patrolAngle) * this.patrolRadius;
+      const targetZ = this.patrolCenter.z + Math.sin(this.patrolAngle) * this.patrolRadius;
+
+      this.group.position.x += (targetX - this.group.position.x) * this.moveSpeed * dt;
+      this.group.position.z += (targetZ - this.group.position.z) * this.moveSpeed * dt;
+    }
 
     // Rotate to face player & periodic plasma bolt shooting
     if (playerPos) {

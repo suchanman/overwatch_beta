@@ -19,7 +19,11 @@
     }
   </script>
   
-  <link rel="stylesheet" href="style.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <link rel="stylesheet" href="style.css?v=2.6">
 </head>
 <body>
   <!-- 3D WebGL Canvas Layer -->
@@ -31,9 +35,25 @@
   <div id="recall-warp" class="recall-warp hidden"></div>
   <div id="dragonblade-aura" class="dragonblade-aura hidden"></div>
   <div id="ult-fullscreen-flash" class="ult-flash"></div>
+  <div id="deadeye-vignette" class="deadeye-vignette hidden">
+    <div class="deadeye-sun-glow"></div>
+    <div class="deadeye-top-hud">
+      <div class="deadeye-title">석양이 진다... // DEADEYE</div>
+      <div class="deadeye-timer-track">
+        <div id="deadeye-timer-bar" class="deadeye-timer-bar"></div>
+      </div>
+    </div>
+    <div class="deadeye-action-prompt">
+      <span class="deadeye-key-badge">[좌클릭]</span> 발사
+      <span class="deadeye-prompt-sep">|</span>
+      <span class="deadeye-key-badge">[우클릭]</span> 취소
+    </div>
+  </div>
 
   <!-- Overwatch 2 HUD -->
   <div id="hud-overlay" class="hud-container hidden">
+    <!-- McCree Deadeye Target Lock-on Overlays (Screen-space Head Reticles & Skull Indicators) -->
+    <div id="deadeye-targets-container" class="deadeye-targets-container"></div>
     <!-- Top Left: Network Ping & Multiplayer Status -->
     <div class="top-left-network">
       <span id="net-status-dot" class="net-dot online"></span>
@@ -208,6 +228,7 @@
       <span>[2] 겐지</span>
       <span>[3] 라인하르트</span>
       <span>[4] 맥크리</span>
+      <span>[5] 둠피스트</span>
       <span class="divider">•</span>
       <span>[WASD] 이동</span>
       <span>[SPACE] 점프</span>
@@ -338,6 +359,11 @@
           <div class="card-hero-name">맥크리 (MCCREE)</div>
           <div class="card-hero-desc">정밀 피스키퍼, 난사, 전투 구르기 재장전, 섬광탄, 황야의 무법자</div>
         </button>
+        <button type="button" class="hero-select-card" data-hero="doomfist">
+          <div class="card-hero-img doomfist-img"></div>
+          <div class="card-hero-name">둠피스트 (DOOMFIST)</div>
+          <div class="card-hero-desc">철권포 산탄, 로켓 펀치 충전 돌진, 지진 강타, 라이징 어퍼컷, 파멸의 일격</div>
+        </button>
       </div>
 
       <!-- Multiplayer Settings Form -->
@@ -439,12 +465,17 @@
           <span class="name">맥크리</span>
           <span class="key-tag">[4]</span>
         </button>
+        <button class="switch-card" data-pick="doomfist">
+          <div class="portrait doomfist"></div>
+          <span class="name">둠피스트</span>
+          <span class="key-tag">[5]</span>
+        </button>
       </div>
       <p class="switch-esc-hint">[ESC] 또는 [H]를 눌러 취소</p>
     </div>
   </div>
 
   <!-- Game Scripts (Universal Standalone Bundle: works directly with file:// and http://) -->
-  <script src="js/bundle.js"></script>
+  <script src="js/bundle.js?v=2.6"></script>
 </body>
 </html>

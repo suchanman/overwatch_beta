@@ -649,6 +649,38 @@ class AudioSynth {
     osc.stop(now + 0.08);
   }
 
+  playDeadeyeLethalLock() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // 1. High metallic chime lock (sharp Overwatch 'click-ping')
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(2200, now);
+    osc1.frequency.exponentialRampToValueAtTime(3200, now + 0.04);
+    osc1.frequency.exponentialRampToValueAtTime(1600, now + 0.12);
+    gain1.gain.setValueAtTime(0.35, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 0.14);
+
+    // 2. Heavy mechanical hammer cock snap
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(950, now);
+    osc2.frequency.exponentialRampToValueAtTime(220, now + 0.08);
+    gain2.gain.setValueAtTime(0.4, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc2.connect(gain2);
+    gain2.connect(this.masterGain);
+    osc2.start(now);
+    osc2.stop(now + 0.09);
+  }
+
   playDeadeyeShot() {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -677,6 +709,200 @@ class AudioSynth {
     gain2.connect(this.masterGain);
     osc2.start(now);
     osc2.stop(now + 0.6);
+  }
+
+  // ==========================================================================
+  // DOOMFIST PROCEDURAL AUDIO (Hand Cannon, Punch, Slam, Uppercut, Meteor)
+  // ==========================================================================
+  playHandCannon() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(35, now + 0.14);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } catch (_) {}
+  }
+
+  playKnuckleRecharge() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(950, now + 0.06);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (_) {}
+  }
+
+  playRocketPunchCharge() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(650, now + 1.2);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0.32, now + 1.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.35);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 1.35);
+    } catch (_) {}
+  }
+
+  playRocketPunchRelease() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(90, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } catch (_) {}
+  }
+
+  playHeavyPunchHit() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(25, now + 0.3);
+      gain.gain.setValueAtTime(0.65, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch (_) {}
+  }
+
+  playSeismicSlamLeap() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(450, now + 0.25);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch (_) {}
+  }
+
+  playSeismicSlamImpact() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(130, now);
+      osc.frequency.exponentialRampToValueAtTime(20, now + 0.45);
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } catch (_) {}
+  }
+
+  playUppercut() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.22);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } catch (_) {}
+  }
+
+  playMeteorStrikeLaunch() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.5);
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.6);
+    } catch (_) {}
+  }
+
+  playMeteorStrikeImpact() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(15, now + 0.7);
+      gain.gain.setValueAtTime(0.8, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.85);
+    } catch (_) {}
   }
 
   // ==========================================================================
@@ -886,6 +1112,7 @@ class InputManager {
       if (key === '2' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('genji');
       if (key === '3' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('reinhardt');
       if (key === '4' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('mccree');
+      if (key === '5' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('doomfist');
       if (key === 'h' && this.onHeroSwitchRequested) this.onHeroSwitchRequested('toggle_modal');
     });
 
@@ -1600,6 +1827,12 @@ class UIManager {
     this.shieldHpCurrentEl = document.getElementById('shield-hp-current');
     this.shieldBarFill = document.getElementById('shield-bar-fill');
 
+    // McCree Deadeye (황야의 무법자) Cinematic Overlay & Target Tracking
+    this.deadeyeVignette = document.getElementById('deadeye-vignette');
+    this.deadeyeTimerBar = document.getElementById('deadeye-timer-bar');
+    this.deadeyeTargetsContainer = document.getElementById('deadeye-targets-container');
+    this.deadeyeMarkers = new Map(); // target -> { el, wasLethal, shrinkCircle, ... }
+
     this.eliminations = 0;
     this.streak = 0;
   }
@@ -1610,6 +1843,17 @@ class UIManager {
 
   hideHUD() {
     this.hudOverlay.classList.add('hidden');
+    if (this.deadeyeVignette) this.deadeyeVignette.classList.add('hidden');
+    this.clearDeadeyeMarkers();
+  }
+
+  clearDeadeyeMarkers() {
+    for (const data of this.deadeyeMarkers.values()) {
+      if (data.el && data.el.parentNode) {
+        data.el.parentNode.removeChild(data.el);
+      }
+    }
+    this.deadeyeMarkers.clear();
   }
 
   // ==========================================================================
@@ -1775,7 +2019,7 @@ class UIManager {
   // ==========================================================================
   // UPDATE HUD STATS (Per Frame)
   // ==========================================================================
-  update(hero) {
+  update(hero, camera) {
     // 1. Hero Identity & Portrait
     this.heroNameLabel.textContent = hero.name;
     this.heroPortraitEl.className = `hero-portrait portrait-${hero.name.toLowerCase()}`;
@@ -1789,11 +2033,14 @@ class UIManager {
         else if (hero.name === 'GENJI') { a1Icon.textContent = '🗡️'; a2Icon.textContent = '🛡️'; }
         else if (hero.name === 'REINHARDT') { a1Icon.textContent = '🚀'; a2Icon.textContent = '🔥'; }
         else if (hero.name === 'MCCREE') { a1Icon.textContent = '🔄'; a2Icon.textContent = '💥'; }
+        else if (hero.name === 'DOOMFIST') { a1Icon.textContent = '💥'; a2Icon.textContent = '🌪️'; }
       }
     }
 
     // 2. Numeric Health & Trailing Health Bar (skill.md 3.4)
-    this.hpCurrentEl.textContent = Math.ceil(hero.hp);
+    const baseHp = Math.ceil(hero.hp);
+    const shields = Math.ceil(hero.shields || 0);
+    this.hpCurrentEl.textContent = baseHp + shields;
     this.hpMaxEl.textContent = hero.maxHp;
 
     const hpPct = Math.max(0, (hero.hp / hero.maxHp) * 100);
@@ -1864,6 +2111,11 @@ class UIManager {
       this.ammoMaxEl.textContent = '';
       this.ammoPipsBar.style.display = 'none';
       this.reloadPrompt.classList.add('hidden');
+    } else if (hero.name === 'DOOMFIST') {
+      this.ammoPipsBar.style.display = 'flex';
+      this.ammoCurrentEl.textContent = hero.ammo;
+      this.ammoMaxEl.textContent = '4';
+      this.reloadPrompt.classList.add('hidden');
     } else {
       this.ammoPipsBar.style.display = 'flex';
       this.ammoCurrentEl.textContent = hero.ammo;
@@ -1882,6 +2134,80 @@ class UIManager {
 
     // 7. Reinhardt Center Barrier Shield HUD
     this.updateReinhardtShield(hero);
+
+    // 8. McCree Deadeye Ultimate HUD & Target Reticles
+    this.updateDeadeyeOverlay(hero, camera);
+
+    // 9. Doomfist Rocket Punch Charge & Meteor Strike Targeting
+    this.updateDoomfistHUD(hero);
+  }
+
+  updateDoomfistHUD(hero) {
+    let chargeHud = document.getElementById('doomfist-charge-hud');
+    let meteorPrompt = document.getElementById('doomfist-meteor-prompt');
+
+    if (!chargeHud) {
+      chargeHud = document.createElement('div');
+      chargeHud.id = 'doomfist-charge-hud';
+      chargeHud.className = 'doomfist-charge-hud hidden';
+      chargeHud.innerHTML = `
+        <div class="df-charge-header">
+          <span class="df-charge-title">ROCKET PUNCH CHARGE</span>
+          <span id="df-charge-pct-text" class="df-charge-pct">0%</span>
+        </div>
+        <div class="df-charge-track">
+          <div id="df-charge-fill-bar" class="df-charge-fill"></div>
+          <div class="df-tier t1"></div>
+          <div class="df-tier t2"></div>
+          <div class="df-tier t3"></div>
+        </div>
+        <div class="df-charge-hint">RELEASE TO UNLEASH PUNCH</div>
+      `;
+      document.body.appendChild(chargeHud);
+    }
+
+    if (!meteorPrompt) {
+      meteorPrompt = document.createElement('div');
+      meteorPrompt.id = 'doomfist-meteor-prompt';
+      meteorPrompt.className = 'doomfist-meteor-prompt hidden';
+      meteorPrompt.innerHTML = `
+        <div class="meteor-prompt-title">METEOR STRIKE (파멸의 일격)</div>
+        <div class="meteor-zone-legend">
+          <div class="zone-badge zone-core">
+            <span class="zone-dot core-dot"></span>
+            <span class="zone-text">중심부 (3m): <strong class="dmg-val core-val">300 치명타 피해</strong></span>
+          </div>
+          <div class="zone-badge zone-outer">
+            <span class="zone-dot outer-dot"></span>
+            <span class="zone-text">외곽부 (8.5m): <strong class="dmg-val outer-val">50~180 피해</strong></span>
+          </div>
+        </div>
+        <div class="meteor-prompt-sub">[좌클릭] 또는 [Q] 낙하 확정 (CONFIRM IMPACT)</div>
+      `;
+      document.body.appendChild(meteorPrompt);
+    }
+
+    if (hero && hero.name === 'DOOMFIST') {
+      if (hero.isChargingPunch) {
+        chargeHud.classList.remove('hidden');
+        const pct = Math.floor((hero.punchChargeRatio || 0) * 100);
+        const fillBar = document.getElementById('df-charge-fill-bar');
+        const pctText = document.getElementById('df-charge-pct-text');
+        if (fillBar) fillBar.style.width = `${pct}%`;
+        if (pctText) pctText.textContent = `${pct}%`;
+      } else {
+        chargeHud.classList.add('hidden');
+      }
+
+      if (hero.isMeteorActive && hero.meteorPhase === 'TARGETING') {
+        meteorPrompt.classList.remove('hidden');
+      } else {
+        meteorPrompt.classList.add('hidden');
+      }
+    } else {
+      if (chargeHud) chargeHud.classList.add('hidden');
+      if (meteorPrompt) meteorPrompt.classList.add('hidden');
+    }
   }
 
   updateReinhardtShield(hero) {
@@ -1916,6 +2242,205 @@ class UIManager {
     } else {
       this.reinhardtShieldHud.classList.add('hidden');
     }
+  }
+
+  // ==========================================================================
+  // MCCREE DEADEYE (황야의 무법자) TARGET RETICLES & LETHAL SKULL
+  // ==========================================================================
+  updateDeadeyeOverlay(hero, camera) {
+    const isDeadeye = hero && hero.name === 'MCCREE' && hero.isDeadeyeActive;
+
+    if (!isDeadeye) {
+      if (this.deadeyeVignette && !this.deadeyeVignette.classList.contains('hidden')) {
+        this.deadeyeVignette.classList.add('hidden');
+      }
+      if (this.deadeyeMarkers.size > 0) {
+        this.clearDeadeyeMarkers();
+      }
+      return;
+    }
+
+    // Show Sunset High Noon Vignette
+    if (this.deadeyeVignette && this.deadeyeVignette.classList.contains('hidden')) {
+      this.deadeyeVignette.classList.remove('hidden');
+    }
+
+    // Update Deadeye remaining channel bar
+    if (this.deadeyeTimerBar && hero.deadeyeDuration > 0) {
+      const pct = Math.max(0, Math.min(100, (hero.deadeyeTimer / hero.deadeyeDuration) * 100));
+      this.deadeyeTimerBar.style.width = `${pct}%`;
+    }
+
+    if (!this.deadeyeTargetsContainer || !camera || !hero.deadeyeTargets) return;
+
+    const activeTargets = new Set();
+    const camPos = camera.position;
+    const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+
+    for (const [target, state] of hero.deadeyeTargets.entries()) {
+      if (!target || target.isDead) continue;
+
+      // Determine 3D world position of enemy's head / face
+      const headWorldPos = new THREE.Vector3();
+      if (target.headMesh && typeof target.headMesh.getWorldPosition === 'function') {
+        target.headMesh.getWorldPosition(headWorldPos);
+      } else if (target.group && target.group.position) {
+        headWorldPos.copy(target.group.position).add(new THREE.Vector3(0, 1.8, 0));
+      } else {
+        continue;
+      }
+
+      // Check if target is behind camera plane
+      const toTarget = headWorldPos.clone().sub(camPos).normalize();
+      if (camForward.dot(toTarget) <= 0.1) continue;
+
+      // Project 3D world coordinate to 2D NDC [-1, 1]
+      const proj = headWorldPos.clone().project(camera);
+      if (proj.z > 1.0) continue;
+
+      // Convert to screen pixel coordinates
+      const sx = (proj.x * 0.5 + 0.5) * window.innerWidth;
+      const sy = (-(proj.y * 0.5) + 0.5) * window.innerHeight;
+
+      // Discard targets that are outside screen viewport
+      if (sx < -60 || sx > window.innerWidth + 60 || sy < -60 || sy > window.innerHeight + 60) {
+        continue;
+      }
+
+      // Calculate damage charge ratio against enemy current HP
+      const targetHp = Math.max(1, (target.hp !== undefined) ? target.hp : 200);
+      const currentDmg = Math.floor(state.damage || 0);
+      const progress = Math.min(1.0, currentDmg / targetHp);
+      const isLethal = state.isLethal || progress >= 1.0;
+
+      // Shrink outer circle radius smoothly from 46px down to 12px
+      const maxR = 46;
+      const minR = 12;
+      const currentR = Math.max(minR, Math.round(maxR - (maxR - minR) * progress));
+
+      // Get or create cached DOM marker element
+      let markerData = this.deadeyeMarkers.get(target);
+      if (!markerData) {
+        markerData = this.createDeadeyeMarkerElement(target);
+        this.deadeyeTargetsContainer.appendChild(markerData.el);
+        this.deadeyeMarkers.set(target, markerData);
+      }
+
+      activeTargets.add(target);
+
+      // Position over target's face
+      markerData.el.style.left = `${sx.toFixed(1)}px`;
+      markerData.el.style.top = `${sy.toFixed(1)}px`;
+
+      // Update state: Charging vs Lethal Skull
+      if (isLethal) {
+        if (!markerData.wasLethal) {
+          markerData.wasLethal = true;
+          markerData.el.classList.remove('is-charging');
+          markerData.el.classList.add('is-lethal');
+        }
+      } else {
+        if (markerData.wasLethal) {
+          markerData.wasLethal = false;
+          markerData.el.classList.remove('is-lethal');
+          markerData.el.classList.add('is-charging');
+        }
+
+        // Update shrinking circle radius and ticks
+        if (markerData.shrinkCircle) {
+          markerData.shrinkCircle.setAttribute('r', currentR);
+        }
+        if (markerData.notchT) {
+          markerData.notchT.setAttribute('y1', 60 - currentR - 7);
+          markerData.notchT.setAttribute('y2', 60 - currentR);
+        }
+        if (markerData.notchB) {
+          markerData.notchB.setAttribute('y1', 60 + currentR);
+          markerData.notchB.setAttribute('y2', 60 + currentR + 7);
+        }
+        if (markerData.notchL) {
+          markerData.notchL.setAttribute('x1', 60 - currentR - 7);
+          markerData.notchL.setAttribute('x2', 60 - currentR);
+        }
+        if (markerData.notchR) {
+          markerData.notchR.setAttribute('x1', 60 + currentR);
+          markerData.notchR.setAttribute('x2', 60 + currentR + 7);
+        }
+        if (markerData.progressLabel) {
+          markerData.progressLabel.textContent = `${Math.floor(progress * 100)}% (${currentDmg}/${Math.ceil(targetHp)})`;
+        }
+      }
+    }
+
+    // Clean up any targets that lost line of sight, moved out of FOV, or died
+    for (const [t, data] of this.deadeyeMarkers.entries()) {
+      if (!activeTargets.has(t)) {
+        if (data.el && data.el.parentNode) {
+          data.el.parentNode.removeChild(data.el);
+        }
+        this.deadeyeMarkers.delete(t);
+      }
+    }
+  }
+
+  createDeadeyeMarkerElement(target) {
+    const el = document.createElement('div');
+    el.className = 'deadeye-marker is-charging';
+
+    el.innerHTML = `
+      <!-- Center dot on target head -->
+      <div class="deadeye-center-point"></div>
+
+      <!-- Target Name Label -->
+      <div class="deadeye-target-tag">${target.name || '적 요원'}</div>
+
+      <!-- 1. Charging Circle (Shrinks as damage builds) -->
+      <div class="deadeye-charge-box">
+        <svg class="deadeye-ring-svg" viewBox="0 0 120 120">
+          <circle class="deadeye-outer-ring" cx="60" cy="60" r="48"></circle>
+          <circle class="deadeye-shrink-circle" cx="60" cy="60" r="46"></circle>
+          <line class="deadeye-notch notch-t" x1="60" y1="7" x2="60" y2="14"></line>
+          <line class="deadeye-notch notch-b" x1="60" y1="106" x2="60" y2="113"></line>
+          <line class="deadeye-notch notch-l" x1="7" y1="60" x2="14" y2="60"></line>
+          <line class="deadeye-notch notch-r" x1="106" y1="60" x2="113" y2="60"></line>
+        </svg>
+        <div class="deadeye-progress-info">0%</div>
+      </div>
+
+      <!-- 2. Lethal Skull Box (Appears with snap when damage >= HP) -->
+      <div class="deadeye-skull-box">
+        <div class="deadeye-skull-aura"></div>
+        <div class="deadeye-lock-brackets">
+          <span class="deadeye-bracket-corner c-tl"></span>
+          <span class="deadeye-bracket-corner c-tr"></span>
+          <span class="deadeye-bracket-corner c-bl"></span>
+          <span class="deadeye-bracket-corner c-br"></span>
+        </div>
+        <svg class="deadeye-skull-svg" viewBox="0 0 40 40">
+          <!-- Stylized OW2 Lethal Skull -->
+          <path class="skull-path-head" d="M10 16 C10 8, 15 4, 20 4 C25 4, 30 8, 30 16 C30 21, 28 25, 25 27 L25 32 L15 32 L15 27 C12 25, 10 21, 10 16 Z"></path>
+          <ellipse class="skull-path-socket" cx="16" cy="16" rx="2.8" ry="3.8"></ellipse>
+          <ellipse class="skull-path-socket" cx="24" cy="16" rx="2.8" ry="3.8"></ellipse>
+          <polygon class="skull-path-nose" points="20,21 18.5,25 21.5,25"></polygon>
+          <line class="skull-path-tooth" x1="18" y1="28" x2="18" y2="32"></line>
+          <line class="skull-path-tooth" x1="20" y1="28" x2="20" y2="32"></line>
+          <line class="skull-path-tooth" x1="22" y1="28" x2="22" y2="32"></line>
+        </svg>
+        <div class="deadeye-lethal-badge">💀 한방 처치</div>
+      </div>
+    `;
+
+    return {
+      el,
+      wasLethal: false,
+      shrinkCircle: el.querySelector('.deadeye-shrink-circle'),
+      notchT: el.querySelector('.notch-t'),
+      notchB: el.querySelector('.notch-b'),
+      notchL: el.querySelector('.notch-l'),
+      notchR: el.querySelector('.notch-r'),
+      progressLabel: el.querySelector('.deadeye-progress-info'),
+      skullBox: el.querySelector('.deadeye-skull-box')
+    };
   }
 }
 
@@ -3812,6 +4337,40 @@ function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
         animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
       }
     }
+  } else if (heroKey === 'doomfist') {
+    // Doomfist: Heavy confident brawler stride & giant golden gauntlet sway
+    const freq = 6.8;
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = sinVal * 0.55;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -sinVal * 0.55;
+
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -sinVal * 0.35;
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = -Math.PI / 8 + sinVal * 0.25;
+
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, Math.abs(cosVal) * 0.05, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.035, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.08, lerpFactor);
+      }
+    } else {
+      // Intimidating talon leader stance
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, -Math.PI / 8, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, -Math.PI / 8, lerpFactor);
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, Math.sin(walkTime * 2.2) * 0.015, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+    }
   } else {
     // Tracer
     const freq = 11.5; // High cadence rapid sprint
@@ -3852,6 +4411,405 @@ function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
   }
 }
 
+// ============================================================================
+// 5. DOOMFIST 3D MODEL BUILDER (User-Provided Three.js Mesh Specification)
+// ============================================================================
+function buildDoomfistModel(parentGroup) {
+  const doomfistRoot = new THREE.Group();
+  const hitMeshes = [];
+
+  const colors = {
+    skinDark: 0x3d2b1f,
+    gauntletGold: 0xd4af37,
+    gauntletSilver: 0xa0a0a0,
+    gauntletDark: 0x222222,
+    glowRed: 0xff0000,
+    glowBlue: 0x00aaff,
+    pantsWhite: 0xe0e0e0,
+    sashRed: 0x8b0000,
+    armorBlack: 0x1a1a1a,
+    tattoo: 0xffffff
+  };
+
+  const matSkin = new THREE.MeshStandardMaterial({ color: colors.skinDark, roughness: 0.5, metalness: 0.1 });
+  const matGold = new THREE.MeshStandardMaterial({ color: colors.gauntletGold, roughness: 0.3, metalness: 0.9 });
+  const matSilver = new THREE.MeshStandardMaterial({ color: colors.gauntletSilver, roughness: 0.4, metalness: 0.8 });
+  const matDarkMetal = new THREE.MeshStandardMaterial({ color: colors.gauntletDark, roughness: 0.6, metalness: 0.5 });
+  const matArmorBlack = new THREE.MeshStandardMaterial({ color: colors.armorBlack, roughness: 0.7, metalness: 0.3 });
+  const matGlowRed = new THREE.MeshBasicMaterial({ color: colors.glowRed });
+  const matGlowBlue = new THREE.MeshBasicMaterial({ color: colors.glowBlue });
+  const matPants = new THREE.MeshStandardMaterial({ color: colors.pantsWhite, roughness: 0.9, metalness: 0.0 });
+  const matSash = new THREE.MeshStandardMaterial({ color: colors.sashRed, roughness: 0.8, metalness: 0.0 });
+  const matTattoo = new THREE.MeshStandardMaterial({ color: colors.tattoo, roughness: 0.5, metalness: 0.0 });
+
+  // 1. Torso
+  const torsoGroup = new THREE.Group();
+  torsoGroup.position.y = 1.2;
+  doomfistRoot.add(torsoGroup);
+
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), matSkin);
+  chest.scale.set(1.3, 0.9, 0.8);
+  chest.position.y = 0.25;
+  chest.castShadow = true;
+  torsoGroup.add(chest);
+  hitMeshes.push(chest);
+
+  const chestArmor = new THREE.Mesh(new THREE.SphereGeometry(0.36, 32, 32, 0, Math.PI, 0, Math.PI / 2), matArmorBlack);
+  chestArmor.scale.set(1.31, 0.91, 0.81);
+  chestArmor.position.set(0, 0.25, 0);
+  chestArmor.rotation.y = Math.PI / 4;
+  chestArmor.castShadow = true;
+  torsoGroup.add(chestArmor);
+
+  const chestGoldPlate = new THREE.Mesh(new THREE.SphereGeometry(0.37, 32, 32, 0, Math.PI / 3, 0, Math.PI / 3), matGold);
+  chestGoldPlate.scale.set(1.3, 0.9, 0.8);
+  chestGoldPlate.position.set(-0.1, 0.25, 0.1);
+  chestGoldPlate.rotation.z = -Math.PI / 8;
+  chestGoldPlate.castShadow = true;
+  torsoGroup.add(chestGoldPlate);
+
+  const chestGlow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.05), matGlowRed);
+  chestGlow.position.set(-0.15, 0.35, 0.35);
+  chestGlow.rotation.z = Math.PI / 8;
+  chestGlow.rotation.y = -Math.PI / 8;
+  torsoGroup.add(chestGlow);
+
+  const abs = new THREE.Mesh(new THREE.SphereGeometry(0.28, 32, 32), matSkin);
+  abs.scale.set(1.1, 1.0, 0.7);
+  abs.position.y = -0.15;
+  abs.castShadow = true;
+  torsoGroup.add(abs);
+  hitMeshes.push(abs);
+
+  const sashGeo = new THREE.TorusGeometry(0.28, 0.08, 16, 64);
+  const sash = new THREE.Mesh(sashGeo, matSash);
+  sash.position.y = -0.4;
+  sash.rotation.x = Math.PI / 2;
+  sash.rotation.y = 0.1;
+  sash.castShadow = true;
+  torsoGroup.add(sash);
+
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), matSash);
+  knot.position.set(0.1, -0.4, 0.3);
+  knot.scale.set(1, 1.5, 0.5);
+  torsoGroup.add(knot);
+
+  const paintGeo = new THREE.SphereGeometry(0.36, 32, 32, 0, Math.PI / 4, 0, Math.PI / 3);
+  const paint = new THREE.Mesh(paintGeo, matTattoo);
+  paint.scale.set(1.3, 0.9, 0.8);
+  paint.position.set(0, 0.25, 0);
+  paint.rotation.y = -Math.PI / 2;
+  torsoGroup.add(paint);
+
+  // 2. Head
+  const headGroup = new THREE.Group();
+  headGroup.position.y = 0.65;
+  torsoGroup.add(headGroup);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), matSkin);
+  head.scale.set(0.9, 1.2, 1.0);
+  head.castShadow = true;
+  head.userData.isHead = true;
+  headGroup.add(head);
+  hitMeshes.push(head);
+
+  const headsetBand = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.02, 16, 32, Math.PI), matArmorBlack);
+  headsetBand.rotation.x = Math.PI / 2;
+  headsetBand.rotation.y = Math.PI / 2;
+  headGroup.add(headsetBand);
+
+  const earPiece = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 32), matArmorBlack);
+  earPiece.rotation.z = Math.PI / 2;
+  earPiece.position.set(0.14, 0, 0);
+  headGroup.add(earPiece);
+
+  const earGlow = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 16, 32), matGlowRed);
+  earGlow.rotation.y = Math.PI / 2;
+  earGlow.position.set(0.16, 0, 0);
+  headGroup.add(earGlow);
+
+  const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(0.142, 32, 32, 0, Math.PI / 3, 0, Math.PI / 3), matDarkMetal);
+  skullPlate.scale.set(0.9, 1.2, 1.0);
+  skullPlate.rotation.y = -Math.PI / 6;
+  headGroup.add(skullPlate);
+
+  const eyeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.02), matGlowRed);
+  eyeGlow.position.set(0.05, 0.02, 0.13);
+  headGroup.add(eyeGlow);
+
+  const facePaint = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.08), matTattoo);
+  facePaint.position.set(-0.05, -0.05, 0.135);
+  facePaint.rotation.y = -0.2;
+  facePaint.rotation.z = -0.1;
+  headGroup.add(facePaint);
+
+  // 3. Hips & Pelvis
+  const hips = new THREE.Group();
+  hips.position.y = 0.8;
+  doomfistRoot.add(hips);
+
+  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 32), matPants);
+  pelvis.scale.set(1.1, 0.8, 0.9);
+  pelvis.castShadow = true;
+  hips.add(pelvis);
+  hitMeshes.push(pelvis);
+
+  function createLeg(xSide) {
+    const legGroup = new THREE.Group();
+    legGroup.position.set(xSide * 0.16, -0.1, 0);
+
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.45, 32), matPants);
+    thigh.position.y = -0.225;
+    thigh.castShadow = true;
+    legGroup.add(thigh);
+
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), matArmorBlack);
+    knee.position.set(0, -0.45, 0.08);
+    knee.scale.set(1, 1.2, 1);
+    knee.castShadow = true;
+    legGroup.add(knee);
+
+    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.09, 0.4, 32), matArmorBlack);
+    calf.position.y = -0.65;
+    calf.castShadow = true;
+    legGroup.add(calf);
+
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.02, 16, 32), matGlowRed);
+    stripe.rotation.x = Math.PI / 2;
+    stripe.position.y = -0.75;
+    legGroup.add(stripe);
+
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), matDarkMetal);
+    foot.scale.set(1, 0.5, 1.6);
+    foot.position.set(0, -0.9, 0.05);
+    foot.castShadow = true;
+    legGroup.add(foot);
+
+    hitMeshes.push(thigh, calf);
+    return legGroup;
+  }
+
+  const leftLeg = createLeg(-1);
+  const rightLeg = createLeg(1);
+  hips.add(leftLeg, rightLeg);
+
+  // 4. Left Arm (Hand Cannon)
+  const leftArmGroup = new THREE.Group();
+  leftArmGroup.position.set(-0.45, 0.4, 0);
+  torsoGroup.add(leftArmGroup);
+
+  const lShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.15, 32, 32), matSkin);
+  leftArmGroup.add(lShoulder);
+
+  const armTattoo = new THREE.Mesh(new THREE.SphereGeometry(0.155, 32, 32, 0, Math.PI / 2, Math.PI / 4, Math.PI / 4), matTattoo);
+  armTattoo.rotation.y = -Math.PI / 2;
+  leftArmGroup.add(armTattoo);
+
+  const lBicep = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.35, 32), matSkin);
+  lBicep.position.y = -0.2;
+  leftArmGroup.add(lBicep);
+
+  const lElbow = new THREE.Mesh(new THREE.SphereGeometry(0.08, 32, 32), matSkin);
+  lElbow.position.y = -0.38;
+  leftArmGroup.add(lElbow);
+
+  const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.4, 32), matArmorBlack);
+  lForearm.position.y = -0.6;
+  leftArmGroup.add(lForearm);
+
+  const lForearmPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, 0.3, 32, 1, false, 0, Math.PI), matSilver);
+  lForearmPlate.position.y = -0.6;
+  leftArmGroup.add(lForearmPlate);
+
+  const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.1, 32, 32), matDarkMetal);
+  lHand.position.y = -0.85;
+  lHand.scale.set(1, 1.2, 1);
+  leftArmGroup.add(lHand);
+
+  for (let i = 0; i < 4; i++) {
+    const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.02, 16, 16), matSilver);
+    knuckle.position.set(-0.06 + (i * 0.04), -0.92, 0.08);
+    leftArmGroup.add(knuckle);
+
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.01, 8, 8), matGlowBlue);
+    glow.position.set(-0.06 + (i * 0.04), -0.92, 0.1);
+    leftArmGroup.add(glow);
+  }
+
+  leftArmGroup.rotation.z = Math.PI / 8;
+  leftArmGroup.rotation.x = -Math.PI / 8;
+
+  // 5. Right Arm (Golden Gauntlet)
+  const rightArmGroup = new THREE.Group();
+  rightArmGroup.position.set(0.45, 0.4, 0);
+  torsoGroup.add(rightArmGroup);
+
+  const rShoulderGroup = new THREE.Group();
+  rightArmGroup.add(rShoulderGroup);
+
+  const shoulderBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32, 0, Math.PI, 0, Math.PI), matArmorBlack);
+  shoulderBase.rotation.x = Math.PI / 2;
+  shoulderBase.rotation.z = -Math.PI / 4;
+  rShoulderGroup.add(shoulderBase);
+
+  const shoulderGold = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 32, 0, Math.PI * 0.8, 0, Math.PI * 0.8), matGold);
+  shoulderGold.rotation.x = Math.PI / 2;
+  shoulderGold.rotation.z = -Math.PI / 3;
+  rShoulderGroup.add(shoulderGold);
+
+  function createSpike(x, y, z, rotX, rotZ) {
+    const spikeGroup = new THREE.Group();
+    spikeGroup.position.set(x, y, z);
+    spikeGroup.rotation.set(rotX, 0, rotZ);
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16), matArmorBlack);
+    spikeGroup.add(base);
+
+    const horn1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.03, 0.15, 16), matSilver);
+    horn1.position.y = 0.1;
+    spikeGroup.add(horn1);
+
+    const horn2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.005, 0.15, 16), matSilver);
+    horn2.position.set(0.02, 0.22, 0);
+    horn2.rotation.z = -0.2;
+    spikeGroup.add(horn2);
+
+    return spikeGroup;
+  }
+
+  rShoulderGroup.add(createSpike(0.2, 0.15, 0, 0, -Math.PI / 4));
+  rShoulderGroup.add(createSpike(0.0, 0.22, -0.1, Math.PI / 6, 0));
+
+  const shoulderGlow = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.05), matGlowRed);
+  shoulderGlow.position.set(0.2, 0.1, 0.1);
+  shoulderGlow.rotation.z = -Math.PI / 4;
+  rShoulderGroup.add(shoulderGlow);
+
+  const rBicep = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.4, 32), matDarkMetal);
+  rBicep.position.set(0.15, -0.25, 0);
+  rightArmGroup.add(rBicep);
+
+  const bicepGold = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.125, 0.2, 32, 1, false, 0, Math.PI), matGold);
+  bicepGold.position.set(0.15, -0.25, 0);
+  bicepGold.rotation.y = Math.PI / 2;
+  rightArmGroup.add(bicepGold);
+
+  const rElbow = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), matArmorBlack);
+  rElbow.position.set(0.15, -0.45, 0);
+  rightArmGroup.add(rElbow);
+
+  // Gauntlet Forearm & Hand
+  const gauntletGroup = new THREE.Group();
+  gauntletGroup.position.set(0.15, -0.45, 0);
+  rightArmGroup.add(gauntletGroup);
+
+  const gauntletBase = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.18, 0.65, 32), matDarkMetal);
+  gauntletBase.position.y = -0.3;
+  gauntletBase.scale.set(0.9, 1, 0.8);
+  gauntletGroup.add(gauntletBase);
+
+  const topPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.19, 0.6, 32, 1, false, 0, Math.PI), matGold);
+  topPlate.position.y = -0.3;
+  topPlate.scale.set(0.9, 1, 0.8);
+  gauntletGroup.add(topPlate);
+
+  const sidePlateGeom = new THREE.BoxGeometry(0.15, 0.4, 0.3);
+  const lSidePlate = new THREE.Mesh(sidePlateGeom, matGold);
+  lSidePlate.position.set(-0.25, -0.3, 0);
+  lSidePlate.rotation.z = 0.1;
+  gauntletGroup.add(lSidePlate);
+
+  const knuckleGuard = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.25), matGold);
+  knuckleGuard.position.set(0, -0.65, 0.15);
+  gauntletGroup.add(knuckleGuard);
+
+  const knuckleRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 16, 32), matGlowRed);
+  knuckleRing1.position.set(-0.15, -0.65, 0.28);
+  gauntletGroup.add(knuckleRing1);
+
+  const knuckleRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 16, 32), matGlowRed);
+  knuckleRing2.position.set(0.15, -0.65, 0.28);
+  gauntletGroup.add(knuckleRing2);
+
+  for (let i = 0; i < 3; i++) {
+    const spikeBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 16), matDarkMetal);
+    spikeBase.rotation.x = Math.PI / 2;
+    spikeBase.position.set(-0.15 + (i * 0.15), -0.65, 0.28);
+    gauntletGroup.add(spikeBase);
+
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.15, 16), matSilver);
+    spike.rotation.x = Math.PI / 2;
+    spike.position.set(-0.15 + (i * 0.15), -0.65, 0.35);
+    gauntletGroup.add(spike);
+  }
+
+  const fingersGroup = new THREE.Group();
+  fingersGroup.position.set(0, -0.75, 0);
+  gauntletGroup.add(fingersGroup);
+
+  function createFinger(x) {
+    const finger = new THREE.Group();
+    finger.position.x = x;
+
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 16), matGold);
+    hinge.rotation.z = Math.PI / 2;
+    finger.add(hinge);
+
+    const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.08), matSilver);
+    p1.position.set(0, -0.08, 0.04);
+    const p1c = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.15, 16), matSilver);
+    p1c.position.set(0, -0.08, 0.08);
+    finger.add(p1, p1c);
+
+    const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.07), matSilver);
+    p2.position.set(0, -0.15, 0.12);
+    p2.rotation.x = -Math.PI / 4;
+    finger.add(p2);
+
+    return finger;
+  }
+
+  for (let i = 0; i < 4; i++) {
+    fingersGroup.add(createFinger(-0.18 + (i * 0.12)));
+  }
+
+  const thumb = createFinger(0);
+  thumb.position.set(-0.25, 0.05, -0.05);
+  thumb.rotation.z = -Math.PI / 3;
+  thumb.rotation.y = -Math.PI / 4;
+  fingersGroup.add(thumb);
+
+  rightArmGroup.rotation.z = -Math.PI / 6;
+  rightArmGroup.rotation.x = -Math.PI / 8;
+  gauntletGroup.rotation.x = -Math.PI / 3;
+  gauntletGroup.rotation.y = -Math.PI / 6;
+
+  // Add all main components to hit meshes
+  hitMeshes.push(gauntletBase, topPlate, knuckleGuard);
+
+  // Position at floor level
+  doomfistRoot.position.y = 0.0;
+  if (parentGroup) parentGroup.add(doomfistRoot);
+
+  return {
+    rootGroup: doomfistRoot,
+    bodyMesh: chest,
+    headMesh: head,
+    hitMeshes,
+    animNodes: {
+      root: doomfistRoot,
+      torso: torsoGroup,
+      head: headGroup,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg,
+      rightLeg,
+      weapon: gauntletGroup
+    }
+  };
+}
+
+
 
 // ==================== js/entities/Projectile.js ====================
 /**
@@ -3872,6 +4830,7 @@ class ProjectileManager {
     this.bulletBeams = [];
     this.motionStreaks = [];
     this.particles = [];
+    this.groundVFX = [];
     this.onProjectileSpawned = null; // Replicate projectiles across multiplayer network
   }
 
@@ -3970,6 +4929,206 @@ class ProjectileManager {
       velocities,
       life: 0.28,
       maxLife: 0.28
+    });
+  }
+
+  // 1.7 Doomfist Seismic Slam Shockwave (Expanding Ground Cone & Radial Earth Cracks)
+  spawnSeismicShockwave(origin, forwardDir, range = 10.0) {
+    const group = new THREE.Group();
+
+    // 1. Shockwave ground cone sector (80-degree forward fan lying flat on ground)
+    const shape = new THREE.Shape();
+    const halfAngle = THREE.MathUtils.degToRad(40);
+    shape.moveTo(0, 0);
+    const steps = 24;
+    for (let i = 0; i <= steps; i++) {
+      const a = -halfAngle + (halfAngle * 2 * i) / steps;
+      const x = Math.sin(a) * range;
+      const y = Math.cos(a) * range;
+      shape.lineTo(x, y);
+    }
+    shape.closePath();
+
+    const shapeGeo = new THREE.ShapeGeometry(shape);
+    shapeGeo.rotateX(Math.PI / 2); // Rotate +PI/2 so y -> +z (forward in local space)
+    const shapeMat = new THREE.MeshBasicMaterial({
+      color: 0x00d2ff, // Bright electric Overwatch cyan
+      transparent: true,
+      opacity: 0.78,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const fanMesh = new THREE.Mesh(shapeGeo, shapeMat);
+    group.add(fanMesh);
+
+    // Inner bright energy core
+    const coreShape = new THREE.Shape();
+    coreShape.moveTo(0, 0);
+    for (let i = 0; i <= steps; i++) {
+      const a = -halfAngle + (halfAngle * 2 * i) / steps;
+      const x = Math.sin(a) * (range * 0.45);
+      const y = Math.cos(a) * (range * 0.45);
+      coreShape.lineTo(x, y);
+    }
+    coreShape.closePath();
+    const coreGeo = new THREE.ShapeGeometry(coreShape);
+    coreGeo.rotateX(Math.PI / 2); // Rotate +PI/2 so y -> +z (forward in local space)
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.88,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.position.y = 0.005;
+    group.add(coreMesh);
+
+    // 2. Glowing outer shockwave perimeter arc (points along local +Z forward)
+    const rimPoints = [];
+    for (let i = 0; i <= 32; i++) {
+      const a = -halfAngle + (halfAngle * 2 * i) / 32;
+      rimPoints.push(new THREE.Vector3(Math.sin(a) * range, 0.015, Math.cos(a) * range));
+    }
+    const rimGeo = new THREE.BufferGeometry().setFromPoints(rimPoints);
+    const rimMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 4, transparent: true, opacity: 0.95 });
+    const rimLine = new THREE.Line(rimGeo, rimMat);
+    group.add(rimLine);
+
+    // 3. 3D vertical shockwave energy crest wave (gives high first-person visibility)
+    const crestVerts = [];
+    const crestSteps = 24;
+    for (let i = 0; i < crestSteps; i++) {
+      const a0 = -halfAngle + (halfAngle * 2 * i) / crestSteps;
+      const a1 = -halfAngle + (halfAngle * 2 * (i + 1)) / crestSteps;
+      const h0 = 0.55 * Math.cos((a0 / halfAngle) * (Math.PI / 2));
+      const h1 = 0.55 * Math.cos((a1 / halfAngle) * (Math.PI / 2));
+      const x0 = Math.sin(a0) * range, z0 = Math.cos(a0) * range;
+      const x1 = Math.sin(a1) * range, z1 = Math.cos(a1) * range;
+
+      crestVerts.push(
+        x0, 0.02, z0,
+        x1, 0.02, z1,
+        x0, h0, z0,
+        x0, h0, z0,
+        x1, 0.02, z1,
+        x1, h1, z1
+      );
+    }
+    const crestGeo = new THREE.BufferGeometry();
+    crestGeo.setAttribute('position', new THREE.Float32BufferAttribute(crestVerts, 3));
+    const crestMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const crestMesh = new THREE.Mesh(crestGeo, crestMat);
+    group.add(crestMesh);
+
+    // 4. Ground crack lines radiating forward with glowing fracture effect
+    const crackMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.95 });
+    for (let c = -3; c <= 3; c++) {
+      const crackAngle = c * 0.16;
+      const crackLen = range * (0.65 + Math.random() * 0.35);
+      const cp = [
+        new THREE.Vector3(0, 0.02, 0),
+        new THREE.Vector3(Math.sin(crackAngle) * crackLen * 0.35 + (Math.random() - 0.5) * 0.3, 0.02, Math.cos(crackAngle) * crackLen * 0.35),
+        new THREE.Vector3(Math.sin(crackAngle) * crackLen * 0.7 + (Math.random() - 0.5) * 0.3, 0.02, Math.cos(crackAngle) * crackLen * 0.7),
+        new THREE.Vector3(Math.sin(crackAngle) * crackLen, 0.02, Math.cos(crackAngle) * crackLen)
+      ];
+      const crackGeo = new THREE.BufferGeometry().setFromPoints(cp);
+      const crackLine = new THREE.Line(crackGeo, crackMat);
+      group.add(crackLine);
+    }
+
+    // Orient group along forwardDir and place directly at ground level
+    group.position.set(origin.x, origin.y, origin.z);
+    const angle = Math.atan2(forwardDir.x, forwardDir.z);
+    group.rotation.y = angle;
+
+    this.scene.add(group);
+
+    // Spawn earth debris and electric sparks bursting forward in front of Doomfist
+    this.spawnHitSparks(origin.clone().addScaledVector(forwardDir, 1.5), new THREE.Vector3(0, 1, 0), 0x00f0ff, 20);
+    this.spawnHitSparks(origin.clone().addScaledVector(forwardDir, 4.5), new THREE.Vector3(0, 1, 0), 0x38bdf8, 16);
+    this.spawnHitSparks(origin.clone().addScaledVector(forwardDir, 8.0), new THREE.Vector3(0, 1, 0), 0xfbbf24, 16);
+
+    this.groundVFX.push({
+      group,
+      life: 0.75,
+      maxLife: 0.75,
+      onUpdate: (progress) => {
+        const scaleVal = THREE.MathUtils.lerp(0.2, 1.02, Math.min(1.0, progress * 3.0));
+        group.scale.set(scaleVal, 1.0, scaleVal);
+        shapeMat.opacity = Math.max(0, (1 - progress) * 0.78);
+        coreMat.opacity = Math.max(0, (1 - progress * 1.4) * 0.88);
+        rimMat.opacity = Math.max(0, (1 - progress) * 0.95);
+        crestMat.opacity = Math.max(0, (1 - progress * 1.2) * 0.85);
+        crackMat.opacity = Math.max(0, (1 - progress) * 0.95);
+      }
+    });
+  }
+
+  // 1.8 Doomfist Meteor Strike Crater VFX (Deep Crimson Center, Translucent Amber Edge)
+  spawnMeteorImpactCrater(centerPos, innerRadius = 3.0, outerRadius = 8.5) {
+    const group = new THREE.Group();
+
+    // 1. Intense inner blast core (3m direct hit zone) - Deep Crimson Red
+    const innerGeo = new THREE.RingGeometry(0, innerRadius, 32);
+    innerGeo.rotateX(-Math.PI / 2);
+    const innerMat = new THREE.MeshBasicMaterial({
+      color: 0xdc2626,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide
+    });
+    const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+    group.add(innerMesh);
+
+    // 2. Outer blast zone (8.5m splash area) - Translucent Amber / Orange
+    const outerGeo = new THREE.RingGeometry(innerRadius, outerRadius, 36);
+    outerGeo.rotateX(-Math.PI / 2);
+    const outerMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide
+    });
+    const outerMesh = new THREE.Mesh(outerGeo, outerMat);
+    group.add(outerMesh);
+
+    // 3. Shockwave glowing white/gold border ring
+    const borderGeo = new THREE.RingGeometry(outerRadius * 0.96, outerRadius, 36);
+    borderGeo.rotateX(-Math.PI / 2);
+    const borderMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide
+    });
+    const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+    group.add(borderMesh);
+
+    group.position.set(centerPos.x, centerPos.y + 0.04, centerPos.z);
+    this.scene.add(group);
+
+    // Explosive blast particles
+    this.spawnHitSparks(centerPos, new THREE.Vector3(0, 1, 0), 0xdc2626, 32);
+    this.spawnHitSparks(centerPos, new THREE.Vector3(0, 1, 0), 0xfbbf24, 28);
+
+    this.groundVFX.push({
+      group,
+      life: 0.85,
+      maxLife: 0.85,
+      onUpdate: (progress) => {
+        const scaleVal = THREE.MathUtils.lerp(0.5, 1.15, Math.min(1.0, progress * 3.0));
+        group.scale.set(scaleVal, 1.0, scaleVal);
+        innerMat.opacity = Math.max(0, (1 - progress) * 0.9);
+        outerMat.opacity = Math.max(0, (1 - progress) * 0.45);
+        borderMat.opacity = Math.max(0, (1 - progress) * 0.95);
+      }
     });
   }
 
@@ -4269,11 +5428,46 @@ class ProjectileManager {
     }
   }
 
+  // 7. Doomfist Hand Cannon Pellet (7-pellet shotgun spread)
+  spawnDoomfistPellet(origin, direction, damage = 15, onHitCallback = null) {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.065, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff })
+    );
+    mesh.position.copy(origin);
+    this.scene.add(mesh);
+
+    this.projectiles.push({
+      type: 'doomfist_pellet',
+      mesh,
+      velocity: direction.clone().multiplyScalar(65),
+      life: 0.28,
+      damage,
+      onHit: onHitCallback
+    });
+  }
+
   // ==========================================================================
   // TICK UPDATE LOOP (Motion Streaks, Particles, Swept Collision & Replication)
   // ==========================================================================
   update(dt, bots, onHitCallback, map = null, playerContext = null) {
-    // 0. Update Motion Streaks (Fade & Radial Thinning)
+    // 0. Update Ground Visual Effects (Seismic Slam shockwave & Meteor Strike craters)
+    for (let i = this.groundVFX.length - 1; i >= 0; i--) {
+      const vfx = this.groundVFX[i];
+      vfx.life -= dt;
+      const progress = 1.0 - Math.max(0, vfx.life / vfx.maxLife);
+      if (vfx.onUpdate) vfx.onUpdate(progress, dt);
+      if (vfx.life <= 0) {
+        this.scene.remove(vfx.group);
+        vfx.group.traverse((obj) => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) obj.material.dispose();
+        });
+        this.groundVFX.splice(i, 1);
+      }
+    }
+
+    // 0.1 Update Motion Streaks (Fade & Radial Thinning)
     for (let i = this.motionStreaks.length - 1; i >= 0; i--) {
       const s = this.motionStreaks[i];
       s.life -= dt;
@@ -4820,6 +6014,47 @@ class ProjectileManager {
           });
           this.projectiles.splice(i, 1);
         }
+
+      // --- DOOMFIST HAND CANNON PELLET ---
+      } else if (p.type === 'doomfist_pellet') {
+        p.life -= dt;
+        const prevPos = p.mesh.position.clone();
+        p.mesh.position.addScaledVector(p.velocity, dt);
+
+        let hit = false;
+        if (map && typeof map.checkProjectileHit === 'function') {
+          const wallHit = map.checkProjectileHit(prevPos, p.mesh.position, 0.15);
+          if (wallHit.hit) {
+            hit = true;
+            this.spawnHitSparks(wallHit.point || prevPos, new THREE.Vector3(0, 1, 0), 0x00f0ff, 6);
+          }
+        }
+
+        if (!hit) {
+          for (const bot of bots) {
+            if (bot.isDead) continue;
+            const bPos = bot.group ? bot.group.position : bot.position;
+            if (!bPos) continue;
+            const dist = p.mesh.position.distanceTo(bPos.clone().add(new THREE.Vector3(0, 1.1, 0)));
+            if (dist < 1.35) {
+              hit = true;
+              const finalBlow = bot.takeDamage(p.damage, false, p.velocity.clone().normalize());
+              if (p.onHit) p.onHit(bot, p.damage, false, finalBlow);
+              onHitCallback(bot, p.damage, false, finalBlow);
+              this.spawnHitSparks(p.mesh.position, new THREE.Vector3(0, 1, 0), 0x00f0ff, 8);
+              break;
+            }
+          }
+        }
+
+        if (hit || p.life <= 0) {
+          this.scene.remove(p.mesh);
+          p.mesh.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
+          this.projectiles.splice(i, 1);
+        }
       }
     }
   }
@@ -4850,10 +6085,12 @@ class TrainingBot {
     this.respawnTimer = 0;
     this.spawnPos = new THREE.Vector3(x, 0, z);
 
-    // Hit reaction
+    // Hit reaction & Knockback physics
     this.flashTimer = 0;
     this.squashScale = new THREE.Vector3(1, 1, 1);
     this.targetSquash = new THREE.Vector3(1, 1, 1);
+    this.knockbackVelocity = new THREE.Vector3();
+    this.isAirborne = false;
 
     // Patrol movement
     this.patrolCenter = new THREE.Vector3(x, 0, z);
@@ -5029,7 +6266,7 @@ class TrainingBot {
     this.targetSquash.set(1.22, 0.78, 1.22);
 
     // Knockback
-    if (hitDir) {
+    if (hitDir && (!this.knockbackVelocity || this.knockbackVelocity.lengthSq() < 0.01)) {
       this.group.position.addScaledVector(hitDir, 0.3);
     }
 
@@ -5040,6 +6277,13 @@ class TrainingBot {
       return true; // Final Blow
     }
     return false;
+  }
+
+  applyKnockback(vector, force = 1.0) {
+    if (this.isDead) return;
+    if (!this.knockbackVelocity) this.knockbackVelocity = new THREE.Vector3();
+    this.knockbackVelocity.addScaledVector(vector, force);
+    this.isAirborne = true;
   }
 
   die() {
@@ -5063,6 +6307,9 @@ class TrainingBot {
     this.trailingHp = this.maxHp;
     this.hpSprite.visible = true;
     this.group.position.copy(this.spawnPos);
+
+    this.knockbackVelocity = new THREE.Vector3();
+    this.isAirborne = false;
 
     // Reset mesh parts
     this.parts.forEach((p) => {
@@ -5132,16 +6379,33 @@ class TrainingBot {
     this.targetSquash.lerp(new THREE.Vector3(1, 1, 1), 0.15);
     this.group.scale.copy(this.squashScale);
 
-    // 4. Gentle Patrol & Face Player
-    this.patrolAngle += 0.4 * dt;
-    const targetX = this.patrolCenter.x + Math.cos(this.patrolAngle) * this.patrolRadius;
-    const targetZ = this.patrolCenter.z + Math.sin(this.patrolAngle) * this.patrolRadius;
+    // 4. Knockback & Physical Velocity Integration (Rocket Punch, Uppercut, Seismic Slam)
+    if (this.knockbackVelocity && this.knockbackVelocity.lengthSq() > 0.01) {
+      this.group.position.addScaledVector(this.knockbackVelocity, dt);
+      // Horizontal drag
+      this.knockbackVelocity.x *= Math.pow(0.12, dt);
+      this.knockbackVelocity.z *= Math.pow(0.12, dt);
+      // Gravity
+      this.knockbackVelocity.y -= 26.0 * dt;
 
-    this.group.position.x += (targetX - this.group.position.x) * this.moveSpeed * dt;
-    this.group.position.z += (targetZ - this.group.position.z) * this.moveSpeed * dt;
+      // Floor collision check
+      const floorY = (this.spawnPos ? this.spawnPos.y : 0);
+      if (this.group.position.y <= floorY) {
+        this.group.position.y = floorY;
+        this.knockbackVelocity.y = 0;
+        this.isAirborne = false;
+      }
+    } else {
+      // Normal gentle patrol & hover bobbing only when settled
+      this.group.position.y = (this.spawnPos ? this.spawnPos.y : 0) + 0.15 + Math.sin(Date.now() * 0.003 + this.id) * 0.1;
 
-    // Hover floating bobbing
-    this.group.position.y = 0.15 + Math.sin(Date.now() * 0.003 + this.id) * 0.1;
+      this.patrolAngle += 0.4 * dt;
+      const targetX = this.patrolCenter.x + Math.cos(this.patrolAngle) * this.patrolRadius;
+      const targetZ = this.patrolCenter.z + Math.sin(this.patrolAngle) * this.patrolRadius;
+
+      this.group.position.x += (targetX - this.group.position.x) * this.moveSpeed * dt;
+      this.group.position.z += (targetZ - this.group.position.z) * this.moveSpeed * dt;
+    }
 
     // Rotate to face player & periodic plasma bolt shooting
     if (playerPos) {
@@ -5173,7 +6437,7 @@ class RemotePlayer {
     this.name = playerData.name || '플레이어';
     this.heroKey = playerData.hero || 'tracer';
 
-    this.maxHp = playerData.maxHp || (this.heroKey === 'reinhardt' ? 1000 : (this.heroKey === 'mccree' ? 450 : (this.heroKey === 'genji' ? 400 : 300)));
+    this.maxHp = playerData.maxHp || (this.heroKey === 'reinhardt' ? 1000 : (this.heroKey === 'doomfist' ? 450 : (this.heroKey === 'mccree' ? 450 : (this.heroKey === 'genji' ? 400 : 300))));
     this.hp = playerData.hp !== undefined ? playerData.hp : this.maxHp;
     this.trailingHp = this.hp;
     this.trailDelay = 0;
@@ -5189,11 +6453,13 @@ class RemotePlayer {
     this.targetYaw = (playerData.rot && playerData.rot[1]) || 0;
     this.targetPitch = (playerData.rot && playerData.rot[0]) || 0;
 
-    // Hit reaction
+    // Hit reaction & Knockback physics
     this.flashTimer = 0;
     this.flashMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.squashScale = new THREE.Vector3(1, 1, 1);
     this.targetSquash = new THREE.Vector3(1, 1, 1);
+    this.knockbackVelocity = new THREE.Vector3();
+    this.isAirborne = false;
 
     // Root 3D Group
     this.group = new THREE.Group();
@@ -5257,6 +6523,8 @@ class RemotePlayer {
       this.shieldMesh = modelData.shieldMesh;
     } else if (heroKey === 'mccree') {
       modelData = buildMcCreeModel(this.modelGroup);
+    } else if (heroKey === 'doomfist') {
+      modelData = buildDoomfistModel(this.modelGroup);
     } else if (heroKey === 'genji') {
       modelData = buildGenjiModel(this.modelGroup);
     } else {
@@ -5449,6 +6717,12 @@ class RemotePlayer {
     this.rollTimer = 0.35;
   }
 
+  applyKnockback(vector, force = 1.0) {
+    if (this.isDead) return;
+    if (!this.knockbackVelocity) this.knockbackVelocity = new THREE.Vector3();
+    this.knockbackVelocity.addScaledVector(vector, force);
+  }
+
   // ==========================================================================
   // 60FPS TICK (Smooth Lerp, Squash Restoration, Trailing Bar Lerp, Walking Motion)
   // ==========================================================================
@@ -5495,8 +6769,13 @@ class RemotePlayer {
     }
     this.lastPos.copy(this.group.position);
 
-    // 1. Position Lerp (smooth 25Hz -> 60FPS)
-    this.group.position.lerp(this.targetPos, Math.min(1.0, dt * 18.0));
+    // 1. Position Lerp & Knockback integration
+    if (this.knockbackVelocity && this.knockbackVelocity.lengthSq() > 0.01) {
+      this.group.position.addScaledVector(this.knockbackVelocity, dt);
+      this.knockbackVelocity.multiplyScalar(Math.pow(0.12, dt));
+    } else {
+      this.group.position.lerp(this.targetPos, Math.min(1.0, dt * 18.0));
+    }
 
     // 2. Rotation Slerp / Lerp
     let diffYaw = this.targetYaw - this.group.rotation.y;
@@ -7793,7 +9072,13 @@ class McCree extends HeroBase {
   // SECONDARY FIRE: FAN THE HAMMER (난사 - 모든 탄약을 사용하는 연사)
   // ==========================================================================
   secondaryFire(camera, scene, projectileManager, audio, shaker, map) {
-    if (this.isRolling || this.isReloading || this.isDeadeyeActive) return null;
+    if (this.isRolling || this.isReloading) return null;
+
+    // Right-click cancels Deadeye without firing (authentic OW2 mechanic)
+    if (this.isDeadeyeActive) {
+      this.cancelDeadeye(audio);
+      return null;
+    }
 
     if (this.ammo <= 0) {
       this.startReload(audio);
@@ -8004,6 +9289,18 @@ class McCree extends HeroBase {
     this.deadeyeTargets.clear();
   }
 
+  // Cancel Deadeye cleanly
+  cancelDeadeye(audio) {
+    if (!this.isDeadeyeActive) return;
+    this.isDeadeyeActive = false;
+    this.isUltActive = false;
+    this.deadeyeTargets.clear();
+    this.deadeyeFiringQueue = [];
+    if (audio && typeof audio.playSelectClick === 'function') {
+      audio.playSelectClick();
+    }
+  }
+
   // ==========================================================================
   // RELOAD MECHANICS
   // ==========================================================================
@@ -8107,14 +9404,34 @@ class McCree extends HeroBase {
           if (inFOV && !wallBlocked) {
             let state = this.deadeyeTargets.get(target);
             if (!state) {
-              state = { lockTime: 0, damage: 0, isLocked: true, isLethal: false };
+              state = {
+                lockTime: 0,
+                damage: 0,
+                isLocked: true,
+                isLethal: false,
+                wasLethal: false,
+                target: target
+              };
               this.deadeyeTargets.set(target, state);
-              if (audio) audio.playDeadeyeLock();
+              if (audio && typeof audio.playDeadeyeLock === 'function') {
+                audio.playDeadeyeLock();
+              }
             }
             state.lockTime += dt;
-            // Accumulate lethal damage at 170 DMG/sec (Classic OW2 rate)
-            state.damage = Math.min(800, state.lockTime * 170);
-            state.isLethal = state.damage >= (target.hp || 200);
+            // Overwatch 2 Deadeye damage ramp: 130 DMG/s for the first 1.0s, then 260 DMG/s
+            const rampRate = state.lockTime > 1.0 ? 260 : 130;
+            state.damage = Math.min(1000, state.damage + rampRate * dt);
+
+            const targetHp = (target.hp !== undefined) ? target.hp : 200;
+            const isLethalNow = state.damage >= targetHp;
+
+            if (isLethalNow && !state.wasLethal) {
+              state.wasLethal = true;
+              if (audio && typeof audio.playDeadeyeLethalLock === 'function') {
+                audio.playDeadeyeLethalLock();
+              }
+            }
+            state.isLethal = isLethalNow;
           } else {
             // Lost line of sight behind wall or out of view: reset lock
             this.deadeyeTargets.delete(target);
@@ -8205,6 +9522,837 @@ class McCree extends HeroBase {
   }
 }
 
+// ==================== js/heroes/Doomfist.js ====================
+/**
+ * ============================================================================
+ * DOOMFIST (TANK / BRAWLER - Talons Leader) (Doomfist.js)
+ * - Hand Cannon (철권포): 4-Shot individual auto-recharge knuckle shotgun (7 pellets)
+ * - Rocket Punch (로켓 펀치 / 우클릭): Hold to charge (0~100%), dash & massive knockback
+ * - Seismic Slam (지진 강타 / Shift): Forward upward leap, landing shockwave & pull
+ * - Rising Uppercut (라이징 어퍼컷 / E): Vertical surge, launches enemies airborne
+ * - Meteor Strike (파멸의 일격 / Q): Sky leap, floor dual-ring targeting, crater impact
+ * - Passive (최선의 공격은...): Ability damage generates decaying overhealth (+35~75, max +150)
+ * ============================================================================
+ */
+class Doomfist extends HeroBase {
+  constructor() {
+    super('DOOMFIST', 450, 6.6);
+
+    // Passive: The Best Defense... (최선의 공격은...)
+    this.maxShields = 150;
+    this.shields = 0;
+    this.shieldDecayTimer = 0;
+
+    // Hand Cannon (철권포) - 4 Shots with individual sequential auto-recharge
+    this.maxAmmo = 4;
+    this.ammo = 4;
+    this.ammoRegenDelay = 0.65;
+    this.ammoRegenTimer = 0;
+    this.fireRate = 0.32;
+    this.fireTimer = 0;
+
+    // Rocket Punch (로켓 펀치 / 우클릭)
+    this.punchCooldown = 4.0;
+    this.punchCooldownTimer = 0;
+    this.isChargingPunch = false;
+    this.punchChargeTime = 0;
+    this.punchMaxChargeTime = 1.30;
+    this.punchChargeRatio = 0;
+    this.isPunchDashing = false;
+    this.punchDashTimer = 0;
+    this.punchDashDuration = 0.40;
+    this.punchVelocity = new THREE.Vector3();
+    this.punchedTargets = new Set();
+
+    // Ability 1: Seismic Slam (지진 강타 / Shift)
+    this.ability1Cooldown = 6.0;
+    this.isSlamming = false;
+    this.slamAirTimer = 0;
+    this.slamVelocity = new THREE.Vector3();
+    this.slamOriginY = 0;
+    this.slamElapsed = 0;
+    this.slamMinAirTime = 0.22;
+
+    // Ability 2: Rising Uppercut (라이징 어퍼컷 / E)
+    this.ability2Cooldown = 6.0;
+    this.isUppercutting = false;
+    this.uppercutTimer = 0;
+    this.uppercutVelocityY = 0;
+
+    // Ultimate: Meteor Strike (파멸의 일격 / Q)
+    this.isMeteorActive = false;
+    this.meteorPhase = 'IDLE'; // 'TARGETING' | 'STRIKING'
+    this.meteorTargetPos = new THREE.Vector3();
+    this.meteorTimer = 0;
+    this.meteorReticleGroup = null;
+
+    // 1st-Person Viewmodel Handles
+    this.defaultLeftArmPos = new THREE.Vector3(-0.28, -0.28, -0.42);
+    this.defaultLeftArmRot = new THREE.Euler(0.12, 0.18, -0.15, 'YXZ');
+    this.defaultRightFistPos = new THREE.Vector3(0.28, -0.28, -0.45);
+    this.defaultRightFistRot = new THREE.Euler(0.18, -0.22, 0.15, 'YXZ');
+
+    this.leftArmGroup = null;
+    this.rightFistGroup = null;
+    this.knuckleGlows = [];
+    this.fistSpikeMeshes = [];
+    this.ventGlowMeshes = [];
+
+    this.idleTime = 0;
+    this.punchAnimProgress = 0;
+    this.uppercutAnimProgress = 0;
+
+    this.buildWeaponModel();
+  }
+
+  // ==========================================================================
+  // PASSIVE: THE BEST DEFENSE... (임시 보호막 생성 & 감쇄)
+  // ==========================================================================
+  addOverhealth(amount) {
+    this.shields = Math.min(this.maxShields, this.shields + amount);
+    this.shieldDecayTimer = 3.0; // Decay begins after 3s
+  }
+
+  takeDamage(amount) {
+    let remainingDamage = amount;
+    if (this.shields > 0) {
+      if (this.shields >= remainingDamage) {
+        this.shields -= remainingDamage;
+        remainingDamage = 0;
+      } else {
+        remainingDamage -= this.shields;
+        this.shields = 0;
+      }
+    }
+
+    if (remainingDamage > 0) {
+      return super.takeDamage(remainingDamage);
+    }
+    return false;
+  }
+
+  // ==========================================================================
+  // 1ST-PERSON VIEWMODEL: LEFT HAND CANNON & RIGHT GOLDEN GAUNTLET
+  // ==========================================================================
+  buildWeaponModel() {
+    this.weaponGroup = new THREE.Group();
+
+    // High-tech Overwatch Materials
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.55, metalness: 0.1 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.28, metalness: 0.88 });
+    const silverMat = new THREE.MeshStandardMaterial({ color: 0xa0a0a0, roughness: 0.35, metalness: 0.85 });
+    const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.7 });
+    const glowBlueMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const glowRedMat = new THREE.MeshBasicMaterial({ color: 0xff1100 });
+
+    // 1. LEFT HAND: Hand Cannon Knuckle Blaster
+    this.leftArmGroup = new THREE.Group();
+    this.leftArmGroup.position.copy(this.defaultLeftArmPos);
+    this.leftArmGroup.rotation.copy(this.defaultLeftArmRot);
+    this.weaponGroup.add(this.leftArmGroup);
+
+    // Left forearm
+    const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 16), darkMetalMat);
+    lForearm.rotation.x = Math.PI / 2;
+    this.leftArmGroup.add(lForearm);
+
+    const lPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.24, 16, 1, false, 0, Math.PI), silverMat);
+    lPlate.rotation.x = Math.PI / 2;
+    lPlate.rotation.y = Math.PI / 2;
+    this.leftArmGroup.add(lPlate);
+
+    // Left Fist (Hand Cannon)
+    const lFist = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.08, 0.12), darkMetalMat);
+    lFist.position.set(0, 0, -0.18);
+    this.leftArmGroup.add(lFist);
+
+    // 4 Knuckle Barrels & Cyan Glowing Muzzle Ports
+    this.knuckleGlows = [];
+    for (let i = 0; i < 4; i++) {
+      const offsetX = -0.033 + (i * 0.022);
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.035, 12), silverMat);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(offsetX, 0.015, -0.24);
+      this.leftArmGroup.add(barrel);
+
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.007, 8, 8), glowBlueMat);
+      glow.position.set(offsetX, 0.015, -0.26);
+      this.leftArmGroup.add(glow);
+      this.knuckleGlows.push(glow);
+    }
+
+    // 2. RIGHT HAND: Iconic Giant Golden Gauntlet
+    this.rightFistGroup = new THREE.Group();
+    this.rightFistGroup.position.copy(this.defaultRightFistPos);
+    this.rightFistGroup.rotation.copy(this.defaultRightFistRot);
+    this.weaponGroup.add(this.rightFistGroup);
+
+    // Massive Golden Gauntlet Arm Sleeve
+    const gauntletBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.38, 20), darkMetalMat);
+    gauntletBase.rotation.x = Math.PI / 2;
+    this.rightFistGroup.add(gauntletBase);
+
+    const goldPlating = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.095, 0.34, 20, 1, false, 0, Math.PI), goldMat);
+    goldPlating.rotation.x = Math.PI / 2;
+    goldPlating.rotation.y = Math.PI / 2;
+    this.rightFistGroup.add(goldPlating);
+
+    // Giant Reinforced Knuckle Guard
+    const knuckleGuard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.11, 0.14), goldMat);
+    knuckleGuard.position.set(0, 0.02, -0.22);
+    this.rightFistGroup.add(knuckleGuard);
+
+    // Knuckle Spikes
+    this.fistSpikeMeshes = [];
+    for (let i = 0; i < 3; i++) {
+      const spikeX = -0.055 + (i * 0.055);
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.065, 12), silverMat);
+      spike.rotation.x = -Math.PI / 2;
+      spike.position.set(spikeX, 0.02, -0.31);
+      this.rightFistGroup.add(spike);
+      this.fistSpikeMeshes.push(spike);
+
+      const ventRing = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.005, 8, 16), glowRedMat);
+      ventRing.position.set(spikeX, 0.02, -0.28);
+      this.rightFistGroup.add(ventRing);
+      this.ventGlowMeshes.push(ventRing);
+    }
+
+    // Heavy thumb knuckle
+    const thumbKnuckle = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.10), goldMat);
+    thumbKnuckle.position.set(-0.095, -0.01, -0.19);
+    thumbKnuckle.rotation.z = -0.4;
+    this.rightFistGroup.add(thumbKnuckle);
+  }
+
+  // ==========================================================================
+  // PRIMARY ATTACK: HAND CANNON (철권포 7발 산탄)
+  // ==========================================================================
+  primaryFire(camera, scene, projectiles, audio, shaker, map) {
+    if (this.ammo <= 0 || this.fireTimer > 0 || this.isChargingPunch || this.isPunchDashing || this.isMeteorActive) {
+      return null;
+    }
+
+    this.ammo--;
+    this.fireTimer = this.fireRate;
+    this.ammoRegenTimer = this.ammoRegenDelay;
+
+    // Recoil animation on left arm
+    if (this.leftArmGroup) {
+      this.leftArmGroup.position.z += 0.08;
+      this.leftArmGroup.position.y += 0.02;
+      this.leftArmGroup.rotation.x -= 0.15;
+    }
+
+    if (audio) {
+      if (typeof audio.playHandCannon === 'function') audio.playHandCannon();
+      else if (typeof audio.playShotgun === 'function') audio.playShotgun();
+      else audio.playPrimaryFire();
+    }
+
+    if (shaker) shaker.addTrauma(0.12);
+
+    // Spawn 7-pellet shotgun blast
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    const origin = camera.position.clone().addScaledVector(right, -0.22).addScaledVector(up, -0.18).addScaledVector(forward, 0.4);
+
+    const pelletCount = 7;
+    const pelletDmg = 15; // 7 * 15 = 105 max
+    const spreadPatterns = [
+      [0, 0],
+      [0.035, 0.025],
+      [-0.035, 0.025],
+      [0.045, -0.03],
+      [-0.045, -0.03],
+      [0.0, 0.045],
+      [0.0, -0.045]
+    ];
+
+    if (projectiles && typeof projectiles.spawnDoomfistPellet === 'function') {
+      spreadPatterns.forEach(([sx, sy]) => {
+        const dir = forward.clone().addScaledVector(right, sx).addScaledVector(up, sy).normalize();
+        projectiles.spawnDoomfistPellet(origin, dir, pelletDmg, (target, dmg, head, kill) => {
+          this.addUltCharge(dmg * 0.15);
+        });
+      });
+    }
+
+    return {
+      raycaster: new THREE.Raycaster(camera.position, forward, 0, 22),
+      damage: 15,
+      isHeadshotMultiplier: 1.5,
+      isHandCannon: true
+    };
+  }
+
+  // ==========================================================================
+  // SECONDARY ATTACK: ROCKET PUNCH (로켓 펀치 충전 & 돌진)
+  // ==========================================================================
+  startRocketPunchCharge(audio) {
+    if (this.punchCooldownTimer > 0 || this.isPunchDashing || this.isSlamming || this.isUppercutting || this.isMeteorActive) {
+      return false;
+    }
+    this.isChargingPunch = true;
+    this.punchChargeTime = 0;
+    this.punchChargeRatio = 0;
+    if (audio) {
+      if (typeof audio.playRocketPunchCharge === 'function') audio.playRocketPunchCharge();
+      else audio.playUltCharge();
+    }
+    return true;
+  }
+
+  releaseRocketPunch(camera, audio, shaker) {
+    if (!this.isChargingPunch) return false;
+    this.isChargingPunch = false;
+
+    // Minimum charge threshold
+    const ratio = Math.max(0.2, this.punchChargeRatio);
+    this.isPunchDashing = true;
+    this.punchDashTimer = this.punchDashDuration;
+    this.punchedTargets.clear();
+    this.punchCooldownTimer = this.punchCooldown;
+
+    // Forward direction from camera
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    forward.y = 0;
+    forward.normalize();
+
+    // Dash speed: 22m/s to 45m/s
+    const speed = THREE.MathUtils.lerp(22.0, 45.0, ratio);
+    this.punchVelocity.copy(forward).multiplyScalar(speed);
+
+    if (audio) {
+      if (typeof audio.playRocketPunchRelease === 'function') audio.playRocketPunchRelease();
+      else audio.playReinhardtCharge();
+    }
+    if (shaker) shaker.addTrauma(0.18 + ratio * 0.15);
+
+    return true;
+  }
+
+  // ==========================================================================
+  // ==========================================================================
+  // ABILITY 1: SEISMIC SLAM (지진 강타 / Shift)
+  // ==========================================================================
+  useAbility1(playerPos, moveDir, camera, audio, shaker, allTargets, onHit, projectiles) {
+    if (this.ability1Timer > 0 || this.isChargingPunch || this.isPunchDashing || this.isMeteorActive) {
+      return false;
+    }
+
+    this.ability1Timer = this.ability1Cooldown;
+    this.isSlamming = true;
+    this.slamAirTimer = 3.5; // Generous air timer so slam never prematurely cuts off in mid-air
+    this.slamElapsed = 0;
+    this.slamMinAirTime = 0.22;
+
+    // 1. 라이징 어퍼컷 중 사용 시: 어퍼컷 즉시 취소 및 지진강타로 부드럽게 연계
+    const wasUppercutting = this.isUppercutting;
+    if (this.isUppercutting) {
+      this.isUppercutting = false;
+      this.uppercutTimer = 0;
+      this.uppercutVelocityY = 0;
+    }
+
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    forward.y = 0;
+    forward.normalize();
+
+    // 2. 지면 vs 공중 판정:
+    // - 땅에서 지진강타를 쓰는게 아닐 경우 (어퍼컷 직후 또는 점프/공중 낙하 중):
+    //   포물선을 그리며 힘차게 점프 도약(상향 8.5m/s, 전방 22.0m/s) 후 지면을 향해 강하
+    // - 땅에서 지진강타를 쓰는 경우:
+    //   지면에서 포물선을 그리며 점프 도약(상향 11.5m/s, 전방 21.0m/s)
+    const isAirborne = wasUppercutting || playerPos.y > 2.05;
+
+    if (isAirborne) {
+      this.slamVelocity.copy(forward).multiplyScalar(22.0);
+      this.slamVelocity.y = 8.5; // 공중 포물선 도약 상승 속도
+    } else {
+      this.slamVelocity.copy(forward).multiplyScalar(21.0);
+      this.slamVelocity.y = 11.5; // 지면 포물선 도약 상승 속도
+    }
+
+    if (audio) {
+      if (typeof audio.playSeismicSlamLeap === 'function') audio.playSeismicSlamLeap();
+      else audio.playGenjiDash();
+    }
+    if (shaker) shaker.addTrauma(0.16);
+
+    return true;
+  }
+
+  // ==========================================================================
+  // ABILITY 2: RISING UPPERCUT (라이징 어퍼컷 / E)
+  // ==========================================================================
+  useAbility2(playerPos, camera, audio, shaker, ui, projectiles) {
+    if (this.ability2Timer > 0 || this.isChargingPunch || this.isPunchDashing || this.isMeteorActive) {
+      return false;
+    }
+
+    this.ability2Timer = this.ability2Cooldown;
+    this.isUppercutting = true;
+    this.uppercutTimer = 0.58;
+    this.uppercutVelocityY = 24.0; // High vertical launch (~7-9m up)
+    this.uppercutAnimProgress = 1.0;
+
+    if (audio) {
+      if (typeof audio.playUppercut === 'function') audio.playUppercut();
+      else audio.playTracerBlink();
+    }
+    if (shaker) shaker.addTrauma(0.24);
+
+    return true;
+  }
+
+  // ==========================================================================
+  // ULTIMATE: METEOR STRIKE (파멸의 일격 / Q)
+  // ==========================================================================
+  useUltimate(camera, projectiles, audio, shaker, ui, allTargets, onHit) {
+    if (this.ultCharge < 100 || this.isMeteorActive) {
+      // If already targeting, Q can confirm strike
+      if (this.isMeteorActive && this.meteorPhase === 'TARGETING') {
+        return this.confirmMeteorStrike(camera, projectiles, audio, shaker, ui, allTargets, onHit);
+      }
+      return false;
+    }
+
+    this.ultCharge = 0;
+    this.isMeteorActive = true;
+    this.isUltActive = true;
+    this.meteorPhase = 'TARGETING';
+    this.meteorTimer = 5.0; // 5 seconds max targeting time
+
+    if (this.weaponGroup) this.weaponGroup.visible = false;
+
+    if (audio) {
+      if (typeof audio.playMeteorStrikeLaunch === 'function') audio.playMeteorStrikeLaunch();
+      else audio.playUltReady();
+    }
+    if (shaker) shaker.addTrauma(0.3);
+
+    return true;
+  }
+
+  confirmMeteorStrike(camera, projectiles, audio, shaker, ui, allTargets, onHit) {
+    if (!this.isMeteorActive || this.meteorPhase !== 'TARGETING') return false;
+
+    this.meteorPhase = 'STRIKING';
+    this.meteorTimer = 0.65; // Quick supersonic descent
+
+    if (this.meteorReticleGroup) {
+      this.meteorReticleGroup.visible = false;
+    }
+
+    if (audio) {
+      if (typeof audio.playMeteorStrikeImpact === 'function') audio.playMeteorStrikeImpact();
+      else audio.playReinhardtShatter();
+    }
+    if (shaker) shaker.addTrauma(0.65);
+    if (ui && typeof ui.triggerUltFlash === 'function') ui.triggerUltFlash();
+
+    return true;
+  }
+
+  ensureMeteorReticle(scene) {
+    if (this.meteorReticleGroup || !scene) return;
+
+    this.meteorReticleGroup = new THREE.Group();
+
+    // 1. Center / Inner Zone (3.0m radius, 300 damage): Deep dark crimson red
+    const innerGeo = new THREE.CircleGeometry(3.0, 48);
+    const innerMat = new THREE.MeshBasicMaterial({
+      color: 0xdc2626, // Deep Crimson Red
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+    innerMesh.rotation.x = -Math.PI / 2;
+    innerMesh.position.y = 0.04;
+    this.meteorReticleGroup.add(innerMesh);
+
+    // Inner Glowing Ring Border
+    const innerRingGeo = new THREE.RingGeometry(2.92, 3.08, 48);
+    const innerRingMat = new THREE.MeshBasicMaterial({
+      color: 0xff1744,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false
+    });
+    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = 0.045;
+    this.meteorReticleGroup.add(innerRing);
+
+    // 2. Outer Zone (8.5m radius, 50~180 damage): Lighter translucent amber / orange
+    const outerGeo = new THREE.RingGeometry(3.08, 8.5, 64);
+    const outerMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b, // Lighter Amber Orange
+      transparent: true,
+      opacity: 0.22,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const outerMesh = new THREE.Mesh(outerGeo, outerMat);
+    outerMesh.rotation.x = -Math.PI / 2;
+    outerMesh.position.y = 0.035;
+    this.meteorReticleGroup.add(outerMesh);
+
+    // Outer Glowing Border Ring
+    const outerRingGeo = new THREE.RingGeometry(8.38, 8.52, 64);
+    const outerRingMat = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false
+    });
+    const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
+    outerRing.rotation.x = -Math.PI / 2;
+    outerRing.position.y = 0.04;
+    this.meteorReticleGroup.add(outerRing);
+
+    // 3. Crosshairs & Targeting Ticks
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2;
+      const tickGeo = new THREE.PlaneGeometry(0.12, 1.8);
+      const tickMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, depthWrite: false });
+      const tick = new THREE.Mesh(tickGeo, tickMat);
+      tick.rotation.x = -Math.PI / 2;
+      tick.rotation.z = angle;
+      tick.position.set(Math.cos(angle) * 8.6, 0.045, Math.sin(angle) * 8.6);
+      this.meteorReticleGroup.add(tick);
+
+      const inTick = new THREE.Mesh(tickGeo, new THREE.MeshBasicMaterial({ color: 0xff3333, side: THREE.DoubleSide, depthWrite: false }));
+      inTick.rotation.x = -Math.PI / 2;
+      inTick.rotation.z = angle;
+      inTick.position.set(Math.cos(angle) * 3.1, 0.046, Math.sin(angle) * 3.1);
+      this.meteorReticleGroup.add(inTick);
+    }
+
+    this.meteorReticleGroup.visible = false;
+    scene.add(this.meteorReticleGroup);
+  }
+
+  // ==========================================================================
+  // FRAME UPDATE LOOP
+  // ==========================================================================
+  update(dt, playerPos, camera, projectiles, audio, allTargets, onHit, shaker, map) {
+    super.updateBase(dt);
+    this.idleTime += dt;
+
+    // 1. Passive Overhealth Decay
+    if (this.shieldDecayTimer > 0) {
+      this.shieldDecayTimer -= dt;
+    } else if (this.shields > 0) {
+      this.shields = Math.max(0, this.shields - (30.0 * dt));
+    }
+
+    // 2. Hand Cannon Sequential Auto-Recharge
+    if (this.ammo < this.maxAmmo) {
+      this.ammoRegenTimer -= dt;
+      if (this.ammoRegenTimer <= 0) {
+        this.ammo++;
+        this.ammoRegenTimer = this.ammoRegenDelay;
+        if (audio && typeof audio.playKnuckleRecharge === 'function') audio.playKnuckleRecharge();
+      }
+    }
+
+    // 3. Rocket Punch Charge Update
+    if (this.isChargingPunch) {
+      this.punchChargeTime = Math.min(this.punchMaxChargeTime, this.punchChargeTime + dt);
+      this.punchChargeRatio = this.punchChargeTime / this.punchMaxChargeTime;
+
+      // Pull right gauntlet back in anticipation
+      if (this.rightFistGroup) {
+        this.rightFistGroup.position.z = this.defaultRightFistPos.z + this.punchChargeRatio * 0.18;
+        this.rightFistGroup.position.x = this.defaultRightFistPos.x + this.punchChargeRatio * 0.05;
+        this.rightFistGroup.rotation.y = this.defaultRightFistRot.y - this.punchChargeRatio * 0.25;
+      }
+    } else if (this.punchCooldownTimer > 0) {
+      this.punchCooldownTimer -= dt;
+    }
+
+    // 4. Rocket Punch Dash Update & Target Collision Sweep
+    if (this.isPunchDashing) {
+      this.punchDashTimer -= dt;
+      playerPos.addScaledVector(this.punchVelocity, dt);
+
+      // Gauntlet forward punch thrust
+      if (this.rightFistGroup) {
+        this.rightFistGroup.position.z = this.defaultRightFistPos.z - 0.28;
+        this.rightFistGroup.rotation.x = -0.15;
+      }
+
+      // Check collision with enemies along dash path
+      allTargets.forEach((target) => {
+        if (target.isDead || this.punchedTargets.has(target)) return;
+        const targetPos = target.group ? target.group.position : target.position;
+        if (!targetPos) return;
+
+        const horizDist = Math.hypot(targetPos.x - playerPos.x, targetPos.z - playerPos.z);
+        const vertDist = Math.abs(playerPos.y - (targetPos.y + 1.1));
+
+        if (horizDist <= 2.8 && vertDist <= 2.4) {
+          this.punchedTargets.add(target);
+          const ratio = Math.max(0.2, this.punchChargeRatio);
+          const dmg = Math.round(THREE.MathUtils.lerp(90, 240, ratio));
+
+          // 1. Halt punch dash immediately on impact (do not pass through)
+          this.isPunchDashing = false;
+          this.punchDashTimer = 0;
+          this.punchVelocity.set(0, 0, 0);
+
+          // 2. Knockback direction and scaling with charge gauge
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+          forward.y = 0;
+          forward.normalize();
+
+          const kbForce = THREE.MathUtils.lerp(22.0, 58.0, ratio);
+          const kbUp = THREE.MathUtils.lerp(4.0, 12.0, ratio);
+          const knockbackDir = forward.clone().multiplyScalar(kbForce).add(new THREE.Vector3(0, kbUp, 0));
+
+          // Apply Knockback
+          if (target.applyKnockback) {
+            target.applyKnockback(knockbackDir, 1.0);
+          } else if (target.velocity) {
+            target.velocity.add(knockbackDir);
+          }
+
+          const kill = target.takeDamage(dmg, false, forward);
+          if (onHit) onHit(target, dmg, false, kill);
+
+          this.addOverhealth(35);
+          this.addUltCharge(dmg * 0.2);
+
+          if (projectiles && typeof projectiles.spawnHitSparks === 'function') {
+            projectiles.spawnHitSparks(targetPos.clone().add(new THREE.Vector3(0, 1.0, 0)), forward, 0xff9900);
+          }
+
+          if (audio) {
+            if (typeof audio.playHeavyPunchHit === 'function') audio.playHeavyPunchHit();
+            else audio.playHit(false);
+          }
+          if (shaker) shaker.addTrauma(0.35 + ratio * 0.2);
+        }
+      });
+
+      if (this.punchDashTimer <= 0) {
+        this.isPunchDashing = false;
+      }
+    }
+
+    // 5. Seismic Slam In-Air Progress (Parabolic leap -> Impact Shockwave)
+    if (this.isSlamming) {
+      this.slamElapsed += dt;
+      this.slamAirTimer -= dt;
+      playerPos.addScaledVector(this.slamVelocity, dt);
+      this.slamVelocity.y -= 28.0 * dt; // gravity arc
+
+      // 맵 실제 지면 높이 획득 (eye height 기준: 도로 바닥 0.0일 때 groundY = 1.7)
+      const col = (map && typeof map.resolveCollision === 'function')
+        ? map.resolveCollision(playerPos, 0.55)
+        : { groundY: 1.7 };
+      const groundY = col.groundY;
+
+      const isDescending = this.slamVelocity.y < 0;
+      // 실제 땅(groundY)에 도달했는지 확인 (공중에서 임의로 터지지 않고 실제 바닥에 닿았을 때만 착지)
+      const reachedGround = playerPos.y <= groundY + 0.15;
+      const timedOut = this.slamAirTimer <= 0;
+
+      // Only land when descending and past minimum airtime upon reaching true map ground (or emergency timeout)
+      if (this.slamElapsed >= this.slamMinAirTime && ((reachedGround && isDescending) || (playerPos.y <= groundY) || timedOut)) {
+        this.isSlamming = false;
+        playerPos.y = groundY;
+
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        forward.y = 0;
+        forward.normalize();
+
+        // 1. Calculate floor surface level and place shockwave in front of Doomfist at ground level
+        const floorSurfaceY = groundY - 1.7;
+        const shockwaveOrigin = new THREE.Vector3(playerPos.x, Math.max(0.04, floorSurfaceY + 0.05), playerPos.z).addScaledVector(forward, 0.8);
+
+        // Landing Impact: Visual Ground Shockwave
+        if (projectiles && typeof projectiles.spawnSeismicShockwave === 'function') {
+          projectiles.spawnSeismicShockwave(shockwaveOrigin, forward, 10.0);
+        }
+
+        if (audio) {
+          if (typeof audio.playSeismicSlamImpact === 'function') audio.playSeismicSlamImpact();
+          else audio.playReinhardtShatter();
+        }
+        if (shaker) shaker.addTrauma(0.42);
+
+        // 2. Damage enemies hit by shockwave (Enemies must NOT be lifted into air; pure damage only)
+        allTargets.forEach((target) => {
+          if (target.isDead) return;
+          const targetPos = target.group ? target.group.position : target.position;
+          if (!targetPos) return;
+
+          const horizDist = Math.hypot(targetPos.x - playerPos.x, targetPos.z - playerPos.z);
+          const vertDist = Math.abs(playerPos.y - (targetPos.y + 1.1));
+          if (horizDist <= 10.0 && vertDist <= 3.5) {
+            const toTarget = new THREE.Vector3(targetPos.x - playerPos.x, 0, targetPos.z - playerPos.z).normalize();
+            if (forward.dot(toTarget) > 0.35) { // ~70 degree frontal fan
+              const dmg = Math.round(THREE.MathUtils.lerp(50, 95, 1 - horizDist / 10.0));
+              // Pure shockwave damage without vertical lift
+              const kill = target.takeDamage(dmg, false, forward);
+              if (onHit) onHit(target, dmg, false, kill);
+              this.addOverhealth(35);
+              this.addUltCharge(dmg * 0.2);
+            }
+          }
+        });
+      }
+    }
+
+    // 6. Rising Uppercut In-Air Progress (High leap & synchronized enemy lift)
+    if (this.isUppercutting) {
+      this.uppercutTimer -= dt;
+      playerPos.y += this.uppercutVelocityY * dt;
+      this.uppercutVelocityY -= 24.0 * dt;
+
+      // Frontal airborne lift check
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      forward.y = 0;
+      forward.normalize();
+
+      allTargets.forEach((target) => {
+        if (target.isDead) return;
+        const targetPos = target.group ? target.group.position : target.position;
+        if (!targetPos) return;
+
+        const horizDist = Math.hypot(targetPos.x - playerPos.x, targetPos.z - playerPos.z);
+        const vertDist = Math.abs(playerPos.y - (targetPos.y + 1.1));
+        if (horizDist <= 4.2 && vertDist <= 3.0) {
+          const toTarget = new THREE.Vector3(targetPos.x - playerPos.x, 0, targetPos.z - playerPos.z).normalize();
+          if (forward.dot(toTarget) > 0.2 || horizDist < 2.5) {
+            const dmg = 80;
+            // Launch the enemy up to the same height!
+            const lift = new THREE.Vector3(0, Math.max(22.0, this.uppercutVelocityY + 4.0), 0).addScaledVector(forward, 2.0);
+            if (target.applyKnockback) {
+              target.applyKnockback(lift, 1.0);
+            } else if (target.velocity) {
+              target.velocity.y = Math.max(target.velocity.y, lift.y);
+            }
+            if (target.group && target.group.position.y < playerPos.y) {
+              target.group.position.y = THREE.MathUtils.lerp(target.group.position.y, playerPos.y, 0.7);
+            }
+
+            const kill = target.takeDamage(dmg, false, forward);
+            if (onHit) onHit(target, dmg, false, kill);
+            this.addOverhealth(35);
+            this.addUltCharge(dmg * 0.2);
+          }
+        }
+      });
+
+      if (this.uppercutTimer <= 0) {
+        this.isUppercutting = false;
+      }
+    }
+
+    // 7. Meteor Strike Targeting & Impact
+    if (this.isMeteorActive) {
+      if (this.meteorPhase === 'TARGETING') {
+        this.meteorTimer -= dt;
+
+        // Ground targeting position follows player pos
+        this.meteorTargetPos.set(playerPos.x, 0.05, playerPos.z);
+
+        const scene = (projectiles && projectiles.scene) ? projectiles.scene : null;
+        if (scene) this.ensureMeteorReticle(scene);
+
+        if (this.meteorReticleGroup) {
+          this.meteorReticleGroup.visible = true;
+          this.meteorReticleGroup.position.set(playerPos.x, 0.04, playerPos.z);
+          this.meteorReticleGroup.rotation.y += dt * 0.6;
+        }
+
+        if (this.meteorTimer <= 0) {
+          this.confirmMeteorStrike(camera, projectiles, audio, shaker, null, allTargets, onHit);
+        }
+      } else if (this.meteorPhase === 'STRIKING') {
+        this.meteorTimer -= dt;
+
+        if (this.meteorReticleGroup) {
+          this.meteorReticleGroup.visible = false;
+        }
+
+        if (this.meteorTimer <= 0) {
+          this.isMeteorActive = false;
+          this.isUltActive = false;
+          this.meteorPhase = 'IDLE';
+          if (this.weaponGroup) this.weaponGroup.visible = true;
+
+          // Impact Blast Damage & Ground Crater VFX
+          playerPos.copy(this.meteorTargetPos);
+          playerPos.y = 1.7;
+
+          if (projectiles && typeof projectiles.spawnMeteorImpactCrater === 'function') {
+            projectiles.spawnMeteorImpactCrater(this.meteorTargetPos, 3.0, 8.5);
+          }
+
+          allTargets.forEach((target) => {
+            if (target.isDead) return;
+            const targetPos = target.group ? target.group.position : target.position;
+            if (!targetPos) return;
+
+            const horizDist = Math.hypot(targetPos.x - this.meteorTargetPos.x, targetPos.z - this.meteorTargetPos.z);
+            if (horizDist <= 8.5) {
+              const dmg = horizDist <= 3.0 ? 300 : Math.round(THREE.MathUtils.lerp(180, 50, (horizDist - 3.0) / 5.5));
+              const blastDir = targetPos.clone().sub(this.meteorTargetPos).normalize().add(new THREE.Vector3(0, 0.6, 0)).normalize();
+              if (target.applyKnockback) target.applyKnockback(blastDir, 28.0);
+              const kill = target.takeDamage(dmg, false, blastDir);
+              if (onHit) onHit(target, dmg, false, kill);
+              this.addOverhealth(75);
+            }
+          });
+        }
+      }
+    }
+
+    // 8. Dynamic 1st-Person Weapon Viewmodel Settle & Breathing
+    this.updateWeaponAnimation(dt);
+  }
+
+  updateWeaponAnimation(dt) {
+    if (!this.leftArmGroup || !this.rightFistGroup) return;
+
+    // Idle breathing & natural lag
+    const breathY = Math.sin(this.idleTime * 2.2) * 0.006;
+    const breathX = Math.cos(this.idleTime * 1.5) * 0.004;
+
+    if (!this.isChargingPunch && !this.isPunchDashing) {
+      this.rightFistGroup.position.lerp(
+        this.defaultRightFistPos.clone().add(new THREE.Vector3(breathX, breathY, 0)),
+        dt * 8.0
+      );
+      this.rightFistGroup.rotation.x = THREE.MathUtils.lerp(this.rightFistGroup.rotation.x, this.defaultRightFistRot.x, dt * 8.0);
+      this.rightFistGroup.rotation.y = THREE.MathUtils.lerp(this.rightFistGroup.rotation.y, this.defaultRightFistRot.y, dt * 8.0);
+    }
+
+    this.leftArmGroup.position.lerp(
+      this.defaultLeftArmPos.clone().add(new THREE.Vector3(-breathX, breathY, 0)),
+      dt * 10.0
+    );
+    this.leftArmGroup.rotation.x = THREE.MathUtils.lerp(this.leftArmGroup.rotation.x, this.defaultLeftArmRot.x, dt * 10.0);
+
+    // Knuckle lights status: cyan when loaded, dim when empty
+    for (let i = 0; i < 4; i++) {
+      if (this.knuckleGlows[i]) {
+        this.knuckleGlows[i].visible = i < this.ammo;
+      }
+    }
+  }
+}
+
 // ==================== js/main.js ====================
 /**
  * ============================================================================
@@ -8222,6 +10370,7 @@ class McCree extends HeroBase {
  *   * Camera Euler Order 'YXZ' (Zero horizon roll / tilt)
  * ============================================================================
  */
+
 
 
 
@@ -8293,7 +10442,8 @@ class OverwatchGame {
       tracer: new Tracer(),
       genji: new Genji(),
       reinhardt: new Reinhardt(),
-      mccree: new McCree()
+      mccree: new McCree(),
+      doomfist: new Doomfist()
     };
     this.heroes.mccree.onFanShotFired = (start, end) => {
       if (this.network && this.network.isConnected) {
@@ -8390,6 +10540,12 @@ class OverwatchGame {
 
   switchHero(heroKey) {
     if (!this.heroes[heroKey] || this.currentHero === this.heroes[heroKey]) return;
+
+    if (this.currentHero && this.currentHero.isDeadeyeActive && typeof this.currentHero.cancelDeadeye === 'function') {
+      this.currentHero.cancelDeadeye(this.audio);
+      if (this.ui) this.ui.clearDeadeyeMarkers();
+    }
+
     this.currentHeroKey = heroKey;
     this.currentHero = this.heroes[heroKey];
     this.attachHeroWeapon(this.currentHero);
@@ -8428,6 +10584,11 @@ class OverwatchGame {
       if (eIcon) eIcon.textContent = '💥';
       if (altIcon) altIcon.textContent = '⚡';
       if (altLbl) altLbl.textContent = 'FAN';
+    } else if (heroKey === 'doomfist') {
+      if (shiftIcon) shiftIcon.textContent = '💥';
+      if (eIcon) eIcon.textContent = '🌪️';
+      if (altIcon) altIcon.textContent = '👊';
+      if (altLbl) altLbl.textContent = 'PUNCH';
     }
 
     this.updateScoreboard();
@@ -8760,6 +10921,12 @@ class OverwatchGame {
     // Hide weapon viewmodel so corpse/hands vanish!
     if (this.currentHero && this.currentHero.weaponGroup) {
       this.currentHero.weaponGroup.visible = false;
+    }
+
+    // Cancel Deadeye cleanly if player died during channel
+    if (this.currentHero && this.currentHero.isDeadeyeActive && typeof this.currentHero.cancelDeadeye === 'function') {
+      this.currentHero.cancelDeadeye(this.audio);
+      if (this.ui) this.ui.clearDeadeyeMarkers();
     }
 
     // Top-Left Sliding Killfeed for local death (if not already logged by elimination event)
@@ -9129,7 +11296,13 @@ class OverwatchGame {
       currentRotY = 0;
       currentShowcaseHeroKey = heroKey;
 
-      if (heroKey === 'mccree') {
+      if (heroKey === 'doomfist') {
+        const data = buildDoomfistModel(showcaseGroup);
+        data.rootGroup.rotation.y = 0;
+        currentAnimNodes = data.animNodes || null;
+        if (heroTitle) heroTitle.textContent = '둠피스트 (DOOMFIST)';
+        ringMat.color.setHex(0xf99e1a);
+      } else if (heroKey === 'mccree') {
         const data = buildMcCreeModel(showcaseGroup);
         data.rootGroup.rotation.y = 0;
         currentAnimNodes = data.animNodes || null;
@@ -9247,7 +11420,7 @@ class OverwatchGame {
           modal.classList.add('hidden');
           requestLock();
         }
-      } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt' || action === 'mccree') {
+      } else if (action === 'tracer' || action === 'genji' || action === 'reinhardt' || action === 'mccree' || action === 'doomfist') {
         this.switchHero(action);
         if (this.audio && this.audio.playSelectClick) {
           this.audio.playSelectClick();
@@ -9428,19 +11601,24 @@ class OverwatchGame {
       this.updatePlayerMovement(dt);
 
       // 2. Camera Transforms: Update position & Euler 'YXZ' rotation BEFORE combat inputs for 0-latency aim
-      this.camera.position.copy(this.playerPos);
-      const shake = this.shaker.getShakeOffset();
-      this.camera.position.x += shake.posX;
-      this.camera.position.y += shake.posY;
+      if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive && this.currentHero.meteorPhase === 'TARGETING') {
+        this.camera.position.set(this.playerPos.x, 22.0, this.playerPos.z + 12.0);
+        this.camera.lookAt(this.playerPos.x, 0.05, this.playerPos.z);
+      } else {
+        this.camera.position.copy(this.playerPos);
+        const shake = this.shaker.getShakeOffset();
+        this.camera.position.x += shake.posX;
+        this.camera.position.y += shake.posY;
 
-      // ENFORCE YXZ EULER ORDER: Completely eliminates camera roll / tilt / lying down!
-      this.camera.rotation.order = 'YXZ';
-      this.camera.rotation.set(
-        this.input.pitch + shake.rotX,
-        this.input.yaw + shake.rotY,
-        shake.rotZ * 0.12,
-        'YXZ'
-      );
+        // ENFORCE YXZ EULER ORDER: Completely eliminates camera roll / tilt / lying down!
+        this.camera.rotation.order = 'YXZ';
+        this.camera.rotation.set(
+          this.input.pitch + shake.rotX,
+          this.input.yaw + shake.rotY,
+          shake.rotZ * 0.12,
+          'YXZ'
+        );
+      }
       this.camera.updateMatrixWorld(true);
 
       // 3. Network Movement Send (25Hz Throttled)
@@ -9529,7 +11707,7 @@ class OverwatchGame {
     }
 
     // 12. Update Overwatch 2 HUD
-    this.ui.update(this.currentHero);
+    this.ui.update(this.currentHero, this.camera);
 
     // 13. Render 3D Scene
     this.renderer.render(this.scene, this.camera);
@@ -9546,8 +11724,8 @@ class OverwatchGame {
     moveVelocity.addScaledVector(forward, -move.z);
     moveVelocity.addScaledVector(right, move.x);
 
-    // Apply Speed (disable standard movement integration during Charge, Blink, Swift Strike, or Combat Roll)
-    if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing || this.currentHero.isRolling) {
+    // Apply Speed (disable standard movement integration during Charge, Blink, Swift Strike, Combat Roll, Punch Dash, or Slam)
+    if (this.currentHero.isCharging || this.currentHero.isBlinking || this.currentHero.isDashing || this.currentHero.isRolling || this.currentHero.isPunchDashing || this.currentHero.isSlamming) {
       moveVelocity.set(0, 0, 0);
     }
 
@@ -9560,14 +11738,29 @@ class OverwatchGame {
     if (this.currentHero.name === 'MCCREE' && this.currentHero.isDeadeyeActive) {
       moveSpeed *= 0.35;
     }
+    // DOOMFIST: Movement speed reduced by 50% while charging Rocket Punch
+    if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isChargingPunch) {
+      moveSpeed *= 0.5;
+    }
+    // DOOMFIST: Movement speed increased by 2.8x during Meteor Strike targeting
+    if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive && this.currentHero.meteorPhase === 'TARGETING') {
+      moveSpeed *= 2.8;
+    }
     this.playerPos.addScaledVector(moveVelocity, moveSpeed * dt);
 
     // 1. Resolve 3D Obstacle & Platform Collisions
     const colResult = this.map.resolveCollision(this.playerPos, 0.55);
 
-    // 2. Gravity & Jump
-    this.velocityY += this.gravity * dt;
-    this.playerPos.y += this.velocityY * dt;
+    // 2. Gravity & Jump (disabled during Meteor Strike airborne targeting, Uppercut surge, or Seismic Slam arc)
+    if (this.currentHero.name === 'DOOMFIST' && (this.currentHero.isUppercutting || this.currentHero.isSlamming)) {
+      this.velocityY = 0;
+    } else if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive) {
+      this.velocityY = 0;
+      this.playerPos.y = colResult.groundY;
+    } else {
+      this.velocityY += this.gravity * dt;
+      this.playerPos.y += this.velocityY * dt;
+    }
 
     // 3. Multi-level Ground Collision
     if (this.playerPos.y <= colResult.groundY) {
@@ -9614,6 +11807,15 @@ class OverwatchGame {
 
     // Primary Fire (Left Click / Touch Fire)
     if (this.input.keys.primaryFire) {
+      if (this.currentHero.name === 'DOOMFIST' && this.currentHero.isMeteorActive && this.currentHero.meteorPhase === 'TARGETING') {
+        this.input.keys.primaryFire = false;
+        this.currentHero.confirmMeteorStrike(this.camera, this.projectiles, this.audio, this.shaker, this.ui, allTargets, (target, dmg, head, kill) => {
+          if (target.id) this.network.sendHit(target.id, dmg, head);
+          this.handleCombatHit(target, dmg, head, kill);
+        });
+        return;
+      }
+
       const hitResult = this.currentHero.primaryFire(
         this.camera,
         this.scene,
@@ -9789,6 +11991,10 @@ class OverwatchGame {
             end: [beamEnd.x, beamEnd.y, beamEnd.z]
           });
         }
+      } else if (this.currentHero.name === 'DOOMFIST') {
+        if (!this.currentHero.isChargingPunch) {
+          this.currentHero.startRocketPunchCharge(this.audio);
+        }
       } else if (this.currentHero.secondaryFire) {
         this.currentHero.secondaryFire(
           this.camera,
@@ -9804,6 +12010,19 @@ class OverwatchGame {
           this.network.sendAction('shield_toggle', { active: false });
         }
         this.currentHero.setShieldActive(false, this.audio);
+      } else if (this.currentHero.name === 'DOOMFIST') {
+        if (this.currentHero.isChargingPunch) {
+          const didPunch = this.currentHero.releaseRocketPunch(this.camera, this.audio, this.shaker);
+          if (didPunch && this.network && this.network.isConnected) {
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+            forward.y = 0;
+            forward.normalize();
+            this.network.sendAction('doomfist_punch', {
+              dir: [forward.x, forward.y, forward.z],
+              charge: this.currentHero.punchChargeRatio
+            });
+          }
+        }
       }
     }
 
@@ -9842,6 +12061,8 @@ class OverwatchGame {
         });
       } else if (this.currentHero.name === 'MCCREE') {
         this.network.sendAction('mccree_roll', {});
+      } else if (this.currentHero.name === 'DOOMFIST') {
+        this.network.sendAction('doomfist_slam', {});
       }
     }
 

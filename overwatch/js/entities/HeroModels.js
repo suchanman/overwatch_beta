@@ -1222,6 +1222,40 @@ export function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
         animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
       }
     }
+  } else if (heroKey === 'doomfist') {
+    // Doomfist: Heavy confident brawler stride & giant golden gauntlet sway
+    const freq = 6.8;
+    if (isMoving) {
+      const sinVal = Math.sin(walkTime * freq);
+      const cosVal = Math.cos(walkTime * freq);
+
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = sinVal * 0.55;
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = -sinVal * 0.55;
+
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = -sinVal * 0.35;
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = -Math.PI / 8 + sinVal * 0.25;
+
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, Math.abs(cosVal) * 0.05, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, sinVal * 0.035, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, -sinVal * 0.08, lerpFactor);
+      }
+    } else {
+      // Intimidating talon leader stance
+      if (animNodes.leftLeg) animNodes.leftLeg.rotation.x = THREE.MathUtils.lerp(animNodes.leftLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.rightLeg) animNodes.rightLeg.rotation.x = THREE.MathUtils.lerp(animNodes.rightLeg.rotation.x, 0, lerpFactor);
+      if (animNodes.leftArm) animNodes.leftArm.rotation.x = THREE.MathUtils.lerp(animNodes.leftArm.rotation.x, -Math.PI / 8, lerpFactor);
+      if (animNodes.rightArm) animNodes.rightArm.rotation.x = THREE.MathUtils.lerp(animNodes.rightArm.rotation.x, -Math.PI / 8, lerpFactor);
+      if (animNodes.root) {
+        animNodes.root.position.y = THREE.MathUtils.lerp(animNodes.root.position.y, Math.sin(walkTime * 2.2) * 0.015, lerpFactor);
+        animNodes.root.rotation.z = THREE.MathUtils.lerp(animNodes.root.rotation.z, 0, lerpFactor);
+      }
+      if (animNodes.torso) {
+        animNodes.torso.rotation.y = THREE.MathUtils.lerp(animNodes.torso.rotation.y, 0, lerpFactor);
+      }
+    }
   } else {
     // Tracer
     const freq = 11.5; // High cadence rapid sprint
@@ -1261,4 +1295,403 @@ export function animateHeroWalk(animNodes, heroKey, walkTime, isMoving, dt) {
     }
   }
 }
+
+// ============================================================================
+// 5. DOOMFIST 3D MODEL BUILDER (User-Provided Three.js Mesh Specification)
+// ============================================================================
+export function buildDoomfistModel(parentGroup) {
+  const doomfistRoot = new THREE.Group();
+  const hitMeshes = [];
+
+  const colors = {
+    skinDark: 0x3d2b1f,
+    gauntletGold: 0xd4af37,
+    gauntletSilver: 0xa0a0a0,
+    gauntletDark: 0x222222,
+    glowRed: 0xff0000,
+    glowBlue: 0x00aaff,
+    pantsWhite: 0xe0e0e0,
+    sashRed: 0x8b0000,
+    armorBlack: 0x1a1a1a,
+    tattoo: 0xffffff
+  };
+
+  const matSkin = new THREE.MeshStandardMaterial({ color: colors.skinDark, roughness: 0.5, metalness: 0.1 });
+  const matGold = new THREE.MeshStandardMaterial({ color: colors.gauntletGold, roughness: 0.3, metalness: 0.9 });
+  const matSilver = new THREE.MeshStandardMaterial({ color: colors.gauntletSilver, roughness: 0.4, metalness: 0.8 });
+  const matDarkMetal = new THREE.MeshStandardMaterial({ color: colors.gauntletDark, roughness: 0.6, metalness: 0.5 });
+  const matArmorBlack = new THREE.MeshStandardMaterial({ color: colors.armorBlack, roughness: 0.7, metalness: 0.3 });
+  const matGlowRed = new THREE.MeshBasicMaterial({ color: colors.glowRed });
+  const matGlowBlue = new THREE.MeshBasicMaterial({ color: colors.glowBlue });
+  const matPants = new THREE.MeshStandardMaterial({ color: colors.pantsWhite, roughness: 0.9, metalness: 0.0 });
+  const matSash = new THREE.MeshStandardMaterial({ color: colors.sashRed, roughness: 0.8, metalness: 0.0 });
+  const matTattoo = new THREE.MeshStandardMaterial({ color: colors.tattoo, roughness: 0.5, metalness: 0.0 });
+
+  // 1. Torso
+  const torsoGroup = new THREE.Group();
+  torsoGroup.position.y = 1.2;
+  doomfistRoot.add(torsoGroup);
+
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), matSkin);
+  chest.scale.set(1.3, 0.9, 0.8);
+  chest.position.y = 0.25;
+  chest.castShadow = true;
+  torsoGroup.add(chest);
+  hitMeshes.push(chest);
+
+  const chestArmor = new THREE.Mesh(new THREE.SphereGeometry(0.36, 32, 32, 0, Math.PI, 0, Math.PI / 2), matArmorBlack);
+  chestArmor.scale.set(1.31, 0.91, 0.81);
+  chestArmor.position.set(0, 0.25, 0);
+  chestArmor.rotation.y = Math.PI / 4;
+  chestArmor.castShadow = true;
+  torsoGroup.add(chestArmor);
+
+  const chestGoldPlate = new THREE.Mesh(new THREE.SphereGeometry(0.37, 32, 32, 0, Math.PI / 3, 0, Math.PI / 3), matGold);
+  chestGoldPlate.scale.set(1.3, 0.9, 0.8);
+  chestGoldPlate.position.set(-0.1, 0.25, 0.1);
+  chestGoldPlate.rotation.z = -Math.PI / 8;
+  chestGoldPlate.castShadow = true;
+  torsoGroup.add(chestGoldPlate);
+
+  const chestGlow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.05), matGlowRed);
+  chestGlow.position.set(-0.15, 0.35, 0.35);
+  chestGlow.rotation.z = Math.PI / 8;
+  chestGlow.rotation.y = -Math.PI / 8;
+  torsoGroup.add(chestGlow);
+
+  const abs = new THREE.Mesh(new THREE.SphereGeometry(0.28, 32, 32), matSkin);
+  abs.scale.set(1.1, 1.0, 0.7);
+  abs.position.y = -0.15;
+  abs.castShadow = true;
+  torsoGroup.add(abs);
+  hitMeshes.push(abs);
+
+  const sashGeo = new THREE.TorusGeometry(0.28, 0.08, 16, 64);
+  const sash = new THREE.Mesh(sashGeo, matSash);
+  sash.position.y = -0.4;
+  sash.rotation.x = Math.PI / 2;
+  sash.rotation.y = 0.1;
+  sash.castShadow = true;
+  torsoGroup.add(sash);
+
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), matSash);
+  knot.position.set(0.1, -0.4, 0.3);
+  knot.scale.set(1, 1.5, 0.5);
+  torsoGroup.add(knot);
+
+  const paintGeo = new THREE.SphereGeometry(0.36, 32, 32, 0, Math.PI / 4, 0, Math.PI / 3);
+  const paint = new THREE.Mesh(paintGeo, matTattoo);
+  paint.scale.set(1.3, 0.9, 0.8);
+  paint.position.set(0, 0.25, 0);
+  paint.rotation.y = -Math.PI / 2;
+  torsoGroup.add(paint);
+
+  // 2. Head
+  const headGroup = new THREE.Group();
+  headGroup.position.y = 0.65;
+  torsoGroup.add(headGroup);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), matSkin);
+  head.scale.set(0.9, 1.2, 1.0);
+  head.castShadow = true;
+  head.userData.isHead = true;
+  headGroup.add(head);
+  hitMeshes.push(head);
+
+  const headsetBand = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.02, 16, 32, Math.PI), matArmorBlack);
+  headsetBand.rotation.x = Math.PI / 2;
+  headsetBand.rotation.y = Math.PI / 2;
+  headGroup.add(headsetBand);
+
+  const earPiece = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 32), matArmorBlack);
+  earPiece.rotation.z = Math.PI / 2;
+  earPiece.position.set(0.14, 0, 0);
+  headGroup.add(earPiece);
+
+  const earGlow = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 16, 32), matGlowRed);
+  earGlow.rotation.y = Math.PI / 2;
+  earGlow.position.set(0.16, 0, 0);
+  headGroup.add(earGlow);
+
+  const skullPlate = new THREE.Mesh(new THREE.SphereGeometry(0.142, 32, 32, 0, Math.PI / 3, 0, Math.PI / 3), matDarkMetal);
+  skullPlate.scale.set(0.9, 1.2, 1.0);
+  skullPlate.rotation.y = -Math.PI / 6;
+  headGroup.add(skullPlate);
+
+  const eyeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.01, 0.02), matGlowRed);
+  eyeGlow.position.set(0.05, 0.02, 0.13);
+  headGroup.add(eyeGlow);
+
+  const facePaint = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.08), matTattoo);
+  facePaint.position.set(-0.05, -0.05, 0.135);
+  facePaint.rotation.y = -0.2;
+  facePaint.rotation.z = -0.1;
+  headGroup.add(facePaint);
+
+  // 3. Hips & Pelvis
+  const hips = new THREE.Group();
+  hips.position.y = 0.8;
+  doomfistRoot.add(hips);
+
+  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 32), matPants);
+  pelvis.scale.set(1.1, 0.8, 0.9);
+  pelvis.castShadow = true;
+  hips.add(pelvis);
+  hitMeshes.push(pelvis);
+
+  function createLeg(xSide) {
+    const legGroup = new THREE.Group();
+    legGroup.position.set(xSide * 0.16, -0.1, 0);
+
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.45, 32), matPants);
+    thigh.position.y = -0.225;
+    thigh.castShadow = true;
+    legGroup.add(thigh);
+
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), matArmorBlack);
+    knee.position.set(0, -0.45, 0.08);
+    knee.scale.set(1, 1.2, 1);
+    knee.castShadow = true;
+    legGroup.add(knee);
+
+    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.09, 0.4, 32), matArmorBlack);
+    calf.position.y = -0.65;
+    calf.castShadow = true;
+    legGroup.add(calf);
+
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.02, 16, 32), matGlowRed);
+    stripe.rotation.x = Math.PI / 2;
+    stripe.position.y = -0.75;
+    legGroup.add(stripe);
+
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), matDarkMetal);
+    foot.scale.set(1, 0.5, 1.6);
+    foot.position.set(0, -0.9, 0.05);
+    foot.castShadow = true;
+    legGroup.add(foot);
+
+    hitMeshes.push(thigh, calf);
+    return legGroup;
+  }
+
+  const leftLeg = createLeg(-1);
+  const rightLeg = createLeg(1);
+  hips.add(leftLeg, rightLeg);
+
+  // 4. Left Arm (Hand Cannon)
+  const leftArmGroup = new THREE.Group();
+  leftArmGroup.position.set(-0.45, 0.4, 0);
+  torsoGroup.add(leftArmGroup);
+
+  const lShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.15, 32, 32), matSkin);
+  leftArmGroup.add(lShoulder);
+
+  const armTattoo = new THREE.Mesh(new THREE.SphereGeometry(0.155, 32, 32, 0, Math.PI / 2, Math.PI / 4, Math.PI / 4), matTattoo);
+  armTattoo.rotation.y = -Math.PI / 2;
+  leftArmGroup.add(armTattoo);
+
+  const lBicep = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.35, 32), matSkin);
+  lBicep.position.y = -0.2;
+  leftArmGroup.add(lBicep);
+
+  const lElbow = new THREE.Mesh(new THREE.SphereGeometry(0.08, 32, 32), matSkin);
+  lElbow.position.y = -0.38;
+  leftArmGroup.add(lElbow);
+
+  const lForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.4, 32), matArmorBlack);
+  lForearm.position.y = -0.6;
+  leftArmGroup.add(lForearm);
+
+  const lForearmPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, 0.3, 32, 1, false, 0, Math.PI), matSilver);
+  lForearmPlate.position.y = -0.6;
+  leftArmGroup.add(lForearmPlate);
+
+  const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.1, 32, 32), matDarkMetal);
+  lHand.position.y = -0.85;
+  lHand.scale.set(1, 1.2, 1);
+  leftArmGroup.add(lHand);
+
+  for (let i = 0; i < 4; i++) {
+    const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.02, 16, 16), matSilver);
+    knuckle.position.set(-0.06 + (i * 0.04), -0.92, 0.08);
+    leftArmGroup.add(knuckle);
+
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.01, 8, 8), matGlowBlue);
+    glow.position.set(-0.06 + (i * 0.04), -0.92, 0.1);
+    leftArmGroup.add(glow);
+  }
+
+  leftArmGroup.rotation.z = Math.PI / 8;
+  leftArmGroup.rotation.x = -Math.PI / 8;
+
+  // 5. Right Arm (Golden Gauntlet)
+  const rightArmGroup = new THREE.Group();
+  rightArmGroup.position.set(0.45, 0.4, 0);
+  torsoGroup.add(rightArmGroup);
+
+  const rShoulderGroup = new THREE.Group();
+  rightArmGroup.add(rShoulderGroup);
+
+  const shoulderBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32, 0, Math.PI, 0, Math.PI), matArmorBlack);
+  shoulderBase.rotation.x = Math.PI / 2;
+  shoulderBase.rotation.z = -Math.PI / 4;
+  rShoulderGroup.add(shoulderBase);
+
+  const shoulderGold = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 32, 0, Math.PI * 0.8, 0, Math.PI * 0.8), matGold);
+  shoulderGold.rotation.x = Math.PI / 2;
+  shoulderGold.rotation.z = -Math.PI / 3;
+  rShoulderGroup.add(shoulderGold);
+
+  function createSpike(x, y, z, rotX, rotZ) {
+    const spikeGroup = new THREE.Group();
+    spikeGroup.position.set(x, y, z);
+    spikeGroup.rotation.set(rotX, 0, rotZ);
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16), matArmorBlack);
+    spikeGroup.add(base);
+
+    const horn1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.03, 0.15, 16), matSilver);
+    horn1.position.y = 0.1;
+    spikeGroup.add(horn1);
+
+    const horn2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.005, 0.15, 16), matSilver);
+    horn2.position.set(0.02, 0.22, 0);
+    horn2.rotation.z = -0.2;
+    spikeGroup.add(horn2);
+
+    return spikeGroup;
+  }
+
+  rShoulderGroup.add(createSpike(0.2, 0.15, 0, 0, -Math.PI / 4));
+  rShoulderGroup.add(createSpike(0.0, 0.22, -0.1, Math.PI / 6, 0));
+
+  const shoulderGlow = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.05), matGlowRed);
+  shoulderGlow.position.set(0.2, 0.1, 0.1);
+  shoulderGlow.rotation.z = -Math.PI / 4;
+  rShoulderGroup.add(shoulderGlow);
+
+  const rBicep = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.4, 32), matDarkMetal);
+  rBicep.position.set(0.15, -0.25, 0);
+  rightArmGroup.add(rBicep);
+
+  const bicepGold = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.125, 0.2, 32, 1, false, 0, Math.PI), matGold);
+  bicepGold.position.set(0.15, -0.25, 0);
+  bicepGold.rotation.y = Math.PI / 2;
+  rightArmGroup.add(bicepGold);
+
+  const rElbow = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), matArmorBlack);
+  rElbow.position.set(0.15, -0.45, 0);
+  rightArmGroup.add(rElbow);
+
+  // Gauntlet Forearm & Hand
+  const gauntletGroup = new THREE.Group();
+  gauntletGroup.position.set(0.15, -0.45, 0);
+  rightArmGroup.add(gauntletGroup);
+
+  const gauntletBase = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.18, 0.65, 32), matDarkMetal);
+  gauntletBase.position.y = -0.3;
+  gauntletBase.scale.set(0.9, 1, 0.8);
+  gauntletGroup.add(gauntletBase);
+
+  const topPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.19, 0.6, 32, 1, false, 0, Math.PI), matGold);
+  topPlate.position.y = -0.3;
+  topPlate.scale.set(0.9, 1, 0.8);
+  gauntletGroup.add(topPlate);
+
+  const sidePlateGeom = new THREE.BoxGeometry(0.15, 0.4, 0.3);
+  const lSidePlate = new THREE.Mesh(sidePlateGeom, matGold);
+  lSidePlate.position.set(-0.25, -0.3, 0);
+  lSidePlate.rotation.z = 0.1;
+  gauntletGroup.add(lSidePlate);
+
+  const knuckleGuard = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.25), matGold);
+  knuckleGuard.position.set(0, -0.65, 0.15);
+  gauntletGroup.add(knuckleGuard);
+
+  const knuckleRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 16, 32), matGlowRed);
+  knuckleRing1.position.set(-0.15, -0.65, 0.28);
+  gauntletGroup.add(knuckleRing1);
+
+  const knuckleRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.01, 16, 32), matGlowRed);
+  knuckleRing2.position.set(0.15, -0.65, 0.28);
+  gauntletGroup.add(knuckleRing2);
+
+  for (let i = 0; i < 3; i++) {
+    const spikeBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 16), matDarkMetal);
+    spikeBase.rotation.x = Math.PI / 2;
+    spikeBase.position.set(-0.15 + (i * 0.15), -0.65, 0.28);
+    gauntletGroup.add(spikeBase);
+
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.15, 16), matSilver);
+    spike.rotation.x = Math.PI / 2;
+    spike.position.set(-0.15 + (i * 0.15), -0.65, 0.35);
+    gauntletGroup.add(spike);
+  }
+
+  const fingersGroup = new THREE.Group();
+  fingersGroup.position.set(0, -0.75, 0);
+  gauntletGroup.add(fingersGroup);
+
+  function createFinger(x) {
+    const finger = new THREE.Group();
+    finger.position.x = x;
+
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 16), matGold);
+    hinge.rotation.z = Math.PI / 2;
+    finger.add(hinge);
+
+    const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.08), matSilver);
+    p1.position.set(0, -0.08, 0.04);
+    const p1c = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.15, 16), matSilver);
+    p1c.position.set(0, -0.08, 0.08);
+    finger.add(p1, p1c);
+
+    const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.07), matSilver);
+    p2.position.set(0, -0.15, 0.12);
+    p2.rotation.x = -Math.PI / 4;
+    finger.add(p2);
+
+    return finger;
+  }
+
+  for (let i = 0; i < 4; i++) {
+    fingersGroup.add(createFinger(-0.18 + (i * 0.12)));
+  }
+
+  const thumb = createFinger(0);
+  thumb.position.set(-0.25, 0.05, -0.05);
+  thumb.rotation.z = -Math.PI / 3;
+  thumb.rotation.y = -Math.PI / 4;
+  fingersGroup.add(thumb);
+
+  rightArmGroup.rotation.z = -Math.PI / 6;
+  rightArmGroup.rotation.x = -Math.PI / 8;
+  gauntletGroup.rotation.x = -Math.PI / 3;
+  gauntletGroup.rotation.y = -Math.PI / 6;
+
+  // Add all main components to hit meshes
+  hitMeshes.push(gauntletBase, topPlate, knuckleGuard);
+
+  // Position at floor level
+  doomfistRoot.position.y = 0.0;
+  if (parentGroup) parentGroup.add(doomfistRoot);
+
+  return {
+    rootGroup: doomfistRoot,
+    bodyMesh: chest,
+    headMesh: head,
+    hitMeshes,
+    animNodes: {
+      root: doomfistRoot,
+      torso: torsoGroup,
+      head: headGroup,
+      leftArm: leftArmGroup,
+      rightArm: rightArmGroup,
+      leftLeg,
+      rightLeg,
+      weapon: gauntletGroup
+    }
+  };
+}
+
 
